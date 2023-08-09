@@ -1,10 +1,9 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:html_unescape/html_unescape.dart';
 import 'package:charset_converter/charset_converter.dart';
+
+final HtmlUnescape _htmlUnescape = HtmlUnescape();
 
 class Board{
     final BoardInfo boardInfo;
@@ -21,9 +20,8 @@ class Board{
         final response = await http.get(Uri.parse(uri));
         debugPrint("$uri -> ${response.statusCode.toString()}");
         if(response.statusCode==200){
-            final htmlUnescape=HtmlUnescape();
-            final dat=htmlUnescape.convert(await sjisToUtf8(response.bodyBytes));
-            return _parseSubjextTxt(dat);
+            threadInfoList.clear();
+            return _parseSubjextTxt(await sjisToUtf8(response.bodyBytes));
         }else{
             return false;
         }
@@ -33,8 +31,6 @@ class Board{
         for(var line in txt.split("\n")){
             int keyEnd=line.indexOf("<>");
             if(keyEnd<0){
-                // debugPrint("sep not found : $line");
-                // return false;
                 break;
             }
             String key=line.substring(0,keyEnd).substring(0,10);
@@ -49,23 +45,24 @@ class Board{
                     titleEnd=tmp;
                 }
             }
-            String title=line.substring(titleBegin,titleEnd);
+            String title=_htmlUnescape.convert(line.substring(titleBegin,titleEnd).replaceAll("<br>", "\n"));
             
             int? length=int.tryParse(
                 line.substring(titleEnd+2,line.indexOf(")",titleEnd+2))
             );
             if(length == null){
+                debugPrint(line);
                 return false;
-                // length=10;
             }
             var epoch=int.tryParse(key);
             if(epoch==null){
-                debugPrint("-$key-");
+                debugPrint(line);
                 return false;
             }
             DateTime createdAt=DateTime.fromMillisecondsSinceEpoch(epoch*1000);
             threadInfoList.add(ThreadInfo(boardInfo, key, title, createdAt, length));
         }
+        debugPrint(threadInfoList.length.toString());
         return true;
     }
 }
@@ -89,10 +86,11 @@ class Thread{
             "https://${threadInfo.boardInfo.server}"
             "/${threadInfo.boardInfo.name}"
             "/dat"
-            "/${threadInfo.key}";
+            "/${threadInfo.key}.dat";
         final response=await http.get(Uri.parse(uri));
+        debugPrint("$uri -> ${response.statusCode.toString()}");
         if(response.statusCode==200){
-            
+            postList.clear();
             return _parseDat(await sjisToUtf8(response.bodyBytes));
         }else{
             return false;
@@ -114,7 +112,7 @@ class Thread{
                 if(end<0){
                     return null;
                 }else{
-                    return line.substring(begin,end);
+                    return _htmlUnescape.convert(line.substring(begin,end).replaceAll("<br>", "\n"));
                 }
             }
             
@@ -122,8 +120,8 @@ class Thread{
 
             // getting name
             tmp=nextSearch();
-            if(tmp != null){
-                name=tmp;
+            if(tmp!=null){
+                name=tmp.trim();
             }else{
                 return false;
             }
@@ -131,7 +129,7 @@ class Thread{
             // getting mailTo
             tmp=nextSearch();
             if(tmp!=null){
-                mailTo=tmp;
+                mailTo=tmp.trim();
             }else{
                 return false;
             }
@@ -140,8 +138,13 @@ class Thread{
             tmp=nextSearch();
             if(tmp!=null){
                 int pId=line.indexOf("ID:");
-                postAt=line.substring(begin,pId-1);
-                userId=line.substring(pId,end);
+                if(pId>begin){
+                    postAt=line.substring(begin,pId).trim();
+                    userId=line.substring(pId+"ID:".length,end).trim();
+                }else{
+                    postAt=line.trim();
+                    userId="";
+                }
             }else{
                 return false;
             }
@@ -161,7 +164,8 @@ class Thread{
         int index=0;
         for(var line in dat.split("\n")){
             if(parseLine(++index,line)==false){
-                return false;
+                // return false;
+                break;
             }
         }
         threadInfo.length=postList.length;
