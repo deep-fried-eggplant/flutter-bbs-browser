@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:html_unescape/html_unescape.dart';
 import 'package:charset_converter/charset_converter.dart';
+import 'bbs_cookie.dart';
 
 final HtmlUnescape _htmlUnescape = HtmlUnescape();
 
@@ -112,47 +113,53 @@ class Thread{
                 if(end<0){
                     return null;
                 }else{
-                    return _htmlUnescape.convert(line.substring(begin,end).replaceAll("<br>", "\n"));
+                    return line.substring(begin,end).replaceAll("<br>", "\n");
+                    // return _htmlUnescape.convert(line.substring(begin,end).replaceAll("<br>", "\n"));
                 }
             }
             
             String? tmp;
 
-            // getting name
+            // get name
             tmp=nextSearch();
             if(tmp!=null){
-                name=tmp.trim();
+                // name=tmp.trim();
+                name=_htmlUnescape.convert(tmp).trim();
             }else{
                 return false;
             }
 
-            // getting mailTo
+            // get mailTo
             tmp=nextSearch();
             if(tmp!=null){
-                mailTo=tmp.trim();
+                // mailTo=tmp.trim();
+                mailTo=_htmlUnescape.convert(tmp).trim();
             }else{
                 return false;
             }
 
-            // getting postAt & id
+            // get postAt & id
             tmp=nextSearch();
             if(tmp!=null){
-                int pId=line.indexOf("ID:");
-                if(pId>begin){
-                    postAt=line.substring(begin,pId).trim();
-                    userId=line.substring(pId+"ID:".length,end).trim();
+                int pId=tmp.indexOf("ID:");
+                if(pId>=0){
+                    // postAt=tmp.substring(0,pId).trim();
+                    // userId=tmp.substring(pId+"ID:".length).trim();
+                    postAt=_htmlUnescape.convert(tmp.substring(0,pId)).trim();
+                    userId=_htmlUnescape.convert(tmp.substring(pId+"ID:".length)).trim();
                 }else{
-                    postAt=line.trim();
+                    // postAt=tmp.trim();
+                    postAt=_htmlUnescape.convert(tmp).trim();
                     userId="";
                 }
             }else{
                 return false;
             }
 
-            // getting message
+            // get message
             tmp=nextSearch();
             if(tmp!=null){
-                message=tmp;
+                message=_htmlUnescape.convert(tmp.replaceAll(RegExp(r"<.*?>"), ""));
             }else{
                 return false;
             }
@@ -195,5 +202,93 @@ class Post{
 
 Future<String> sjisToUtf8(Uint8List bytes) async{
     return await CharsetConverter.decode("shift_jis",bytes);
-    // return await CharsetConverter.decode("utf-8", enc);
+}
+Future<Uint8List> utf8Tosjis(String str) async{
+    return await CharsetConverter.encode("shift_jis", str);
+}
+
+class PostMaker{
+    final ThreadInfo _threadInfo;
+    ThreadInfo get threadInfo => _threadInfo;
+    String name   ="";
+    String mailTo ="";
+    String message="";
+    final String _time;
+
+    final http.Client _client = http.Client();
+
+    final Cookie _cookie;
+    Cookie get cookie => _cookie;
+
+    late http.Response response;
+
+    PostMaker(this._threadInfo)
+    :   _cookie=Cookie(_threadInfo.boardInfo.server),
+        _time=(DateTime.now().millisecondsSinceEpoch~/1000).toString();
+
+    Future<void> send() async{
+        final uriStr = 
+            "https://"
+            "${_threadInfo.boardInfo.server}"
+            "/test/bbs.cgi";
+        // const uriStr = "https://httpbin.org/post";
+        final header = _makeHeader();
+        final body = await _makeBody();
+
+        response = await _client.post(Uri.parse(uriStr),
+            headers: header,
+            body: body,
+        );
+
+        if(response.headers.containsKey("set-cookie")){
+            final cookies=splitMultiSetCookie(response.headers["set-cookie"]!);
+            for(var elem in cookies){
+                _cookie.set(elem);
+            }
+        }else if(response.headers.containsKey("Set-Cookie")){
+            // _cookie = response.headers["Set-Cookie"];
+            final cookies=splitMultiSetCookie(response.headers["Set-Cookie"]!);
+            for(var elem in cookies){
+                _cookie.set(elem);
+            }
+        }
+    }
+
+    Map<String,String> _makeHeader(){
+        Map<String,String> header={};
+        header["Content-Type"] = "application/x-www-form-urlencoded; charset=shift_jis";
+        // header["User-Agent"] = "dfe-bbs-browser/1.0.0";
+        header["User-Agent"] = 
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36";
+        header["Referer"] = "https://${threadInfo.boardInfo.server}/test/read.cgi"
+                            "/${threadInfo.boardInfo.name}/${threadInfo.key}";
+        if(_cookie.isNotEmpty){
+            final list=<String>[];
+            _cookie.get().forEach((key, value){
+                list.add("$key=$value");
+            });
+            header["Cookie"]=list.join(";");
+        }
+        return header;
+    }
+    Future<List<int>> _makeBody() async{
+        String mapToStr(Map<String,String> map){
+            var buffer = StringBuffer();
+            for(var key in map.keys){
+                buffer.write("$key=${map[key]}&");
+            }
+            return buffer.toString();
+        }
+        var str=mapToStr({
+            "bbs":_threadInfo.boardInfo.name,
+            "key":_threadInfo.key,
+            // "time":(DateTime.now().toUtc().microsecondsSinceEpoch~/1000).toString(),
+            "time":_time,
+            "FROM":name,
+            "mail":mailTo,
+            "MESSAGE":message,
+            "subject":""
+        });
+        return await utf8Tosjis(str);
+    }
 }

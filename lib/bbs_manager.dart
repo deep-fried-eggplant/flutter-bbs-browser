@@ -1,19 +1,21 @@
-import 'bbs.dart';
+import 'bbs_basedata.dart';
+
 
 typedef BoardDrawerFunc = void Function();
 typedef ThreadDrawerFunc = void Function();
 
 
 class BoardManager{
-    static final _instance = BoardManager._constructor();
+    static final _instance = BoardManager._internal();
 
-    Board? _board = Board(BoardInfo("sannan.nl","livegalileo"));
+    // Board? _board = Board(BoardInfo("sannan.nl","exp1"));
+    Board? _board = Board(BoardInfo("sannan.nl","unsaku"));
     Board? get board => _board;
 
     BoardDrawerFunc _drawer = () {};
 
-    BoardManager._constructor();
-    factory BoardManager() => _instance;
+    BoardManager._internal();
+    factory BoardManager.getInstance() => _instance;
 
     void open(BoardInfo boardInfo){
         _board = Board(boardInfo);
@@ -31,15 +33,15 @@ class BoardManager{
 }
 
 class ThreadManager{
-    static final _instance = ThreadManager._constructor();
+    static final _instance = ThreadManager._internal();
 
     Thread? _thread;
     Thread? get thread => _thread;
 
     ThreadDrawerFunc _drawer = () {};
 
-    ThreadManager._constructor();
-    factory ThreadManager() => _instance;
+    ThreadManager._internal();
+    factory ThreadManager.getInstance() => _instance;
 
     void open(ThreadInfo threadInfo){
         _thread = Thread(threadInfo);

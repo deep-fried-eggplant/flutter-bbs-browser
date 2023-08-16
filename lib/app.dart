@@ -1,6 +1,7 @@
+import 'package:bbs_browser/configuration.dart';
 import 'package:flutter/material.dart';
-import 'user_setting.dart';
-import 'bbs_view.dart';
+import 'bbs_thread_view.dart';
+import 'bbs_board_view.dart';
 
 class MyApp extends StatelessWidget {
 
@@ -30,10 +31,10 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-    final UserSetting userSetting = UserSetting()..load();
-
     final _sideView = const BoardView();
     final _mainView = const ThreadView();
+
+    static final config = Config.getInstance();
 
     @override
     Widget build(BuildContext context) {
@@ -43,7 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     flex: 1,
                     child: _sideView,
                 ),
-                const VerticalDivider(),
+                VerticalDivider(width: 1,color: config.color.foreground3,),
                 Expanded(
                     flex: 3, 
                     child: _mainView,

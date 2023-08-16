@@ -1,88 +1,87 @@
-import 'package:flutter/foundation.dart';
-import 'dart:convert';
-import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
+
+final userSettingMap = <String,dynamic>{
+
+};
 
 class UserSetting{
+
     static final UserSetting _instance=UserSetting._internal();
 
-    static const String jsonFilePath="user_setting.json";
-
-    static final List<_UserSettingItem> _list=[];
-    
-    static ValueWrapper<T> addItem<T>(String name,T defaultValue){
-        _list.add(_UserSettingItem(T, name, defaultValue)..initialize<T>());
-        return _list.last.value as ValueWrapper<T>;
-    }
-
-    final darkMode  = addItem<bool>("darkMode",false);
-    final comment   = addItem<String>("comment","default comment");
-
-
     UserSetting._internal();
-    factory UserSetting(){
-        return _instance;
-    }
-
-    void setDefault(){
-        for(var item in _list){
-            item.value.set(item.defaultValue);
-        }
-    }
+    factory UserSetting.getInstance() => _instance;
 
     Future<void> load() async{
-        var jsonFile = File(jsonFilePath);
-        if(await jsonFile.exists() == false){
-            setDefault();
-            await save();
-            return;
-        }
-        var json = jsonDecode(await jsonFile.readAsString()) as Map<String,dynamic>;
-        debugPrint("json = $json");
-
-        for(var item in _list){
-            if(json.containsKey(item.name)){
-                if(json[item.name].runtimeType==item.type){
-                    item.value.set(json[item.name]);
+        final pref = await SharedPreferences.getInstance();
+        
+        void loadImpl(String parentKey,Map<String,dynamic> map){
+            for(var key in map.keys){
+                var curKey = parentKey.isEmpty ? key : "$parentKey.$key";
+                if(map[key] is Map){
+                    loadImpl(curKey, map[key]);
+                }else if(pref.containsKey(curKey)){
+                    map[key] = pref.get(curKey)!;
                 }
             }
         }
 
+        loadImpl("",userSettingMap);
     }
     Future<void> save() async{
-        var json = <String,dynamic>{};
-        var file = File(jsonFilePath);
+        final pref = await SharedPreferences.getInstance();
 
-        for(var item in _list){
-            json[item.name]=item.value.get();
+        void saveImpl(String parentKey,Map<String,dynamic> map){
+            for(var key in map.keys){
+                var curKey = parentKey.isEmpty ? key : "$parentKey.$key";
+                if(map[key] is Map){
+                    saveImpl(curKey, map[key]);
+                }else{
+                    switch(map[key].runtimeType){
+                        case int:
+                        pref.setInt(curKey, map[key] as int);
+                        break;
+
+                        case double:
+                        pref.setDouble(curKey, map[key] as double);
+                        break;
+
+                        case String:
+                        pref.setString(curKey, map[key] as String);
+                        break;
+
+                        default:
+                        break;
+                    }
+                }
+            }
         }
 
-        await file.writeAsString(jsonEncode(json));
-        debugPrint("user-setting file has been saved at '${file.absolute}'");
+        saveImpl("", userSettingMap);
     }
 
 }
 
-class _UserSettingItem{
-    final Type type;
-    final String name;
-    final dynamic defaultValue;
-    late ValueWrapper<dynamic> value;
+// class _UserSettingItem{
+//     final Type type;
+//     final String name;
+//     final dynamic defaultValue;
+//     late ValueWrapper<dynamic> value;
 
-    _UserSettingItem(this.type,this.name,this.defaultValue){
-        assert(defaultValue.runtimeType==type);
-    }
+//     _UserSettingItem(this.type,this.name,this.defaultValue){
+//         assert(defaultValue.runtimeType==type);
+//     }
 
-    void initialize<T>(){
-        assert(T==type);
-        value=ValueWrapper<T>(defaultValue);
-    }
-}
+//     void initialize<T>(){
+//         assert(T==type);
+//         value=ValueWrapper<T>(defaultValue);
+//     }
+// }
 
-class ValueWrapper<T>{
-    T _value;
+// class ValueWrapper<T>{
+//     T _value;
 
-    ValueWrapper(this._value);
+//     ValueWrapper(this._value);
 
-    T get() => _value;
-    void set(T value) => _value=value;
-}
+//     T get() => _value;
+//     void set(T value) => _value=value;
+// }
