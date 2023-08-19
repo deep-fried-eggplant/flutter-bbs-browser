@@ -6,8 +6,10 @@ class Config{
     Config._internal();
     factory Config.getInstance() => _instance;
 
-    ColorConfig color = ColorConfig.light;
-
+    ColorConfig color   = ColorConfig.light;
+    
+    final String getUserAgent = "Monazilla/1.0.0 DFE-ChViewer/1.0.0";
+    final String postUserAgent= "Monazilla/1.0.0 DFE-ChViewer/1.0.0";
 }
 
 class ColorConfig{

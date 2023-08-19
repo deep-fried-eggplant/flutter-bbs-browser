@@ -1,10 +1,9 @@
+import 'package:bbs_browser/configuration.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:html_unescape/html_unescape.dart';
 import 'package:charset_converter/charset_converter.dart';
 import 'bbs_cookie.dart';
-
-final HtmlUnescape _htmlUnescape = HtmlUnescape();
 
 class Board{
     final BoardInfo boardInfo;
@@ -29,6 +28,9 @@ class Board{
     }
 
     bool _parseSubjextTxt(String txt){
+        final HtmlUnescape htmlUnescapeInstance = HtmlUnescape();
+        String htmlUnescape(String data)=>htmlUnescapeInstance.convert(data);
+
         for(var line in txt.split("\n")){
             int keyEnd=line.indexOf("<>");
             if(keyEnd<0){
@@ -46,7 +48,9 @@ class Board{
                     titleEnd=tmp;
                 }
             }
-            String title=_htmlUnescape.convert(line.substring(titleBegin,titleEnd).replaceAll("<br>", "\n"));
+            String title=htmlUnescape(
+                line.substring(titleBegin,titleEnd).replaceAll("<br>", "\n")
+            );
             
             int? length=int.tryParse(
                 line.substring(titleEnd+2,line.indexOf(")",titleEnd+2))
@@ -71,8 +75,9 @@ class Board{
 class BoardInfo{
     final String server;
     final String name;
+    final String? nameToShow;
 
-    BoardInfo(this.server,this.name);
+    BoardInfo(this.server,this.name,{this.nameToShow});
 }
 
 class Thread{
@@ -80,7 +85,9 @@ class Thread{
     List<Post> postList=[];
     bool closed=false;
 
-    Thread(this.threadInfo);
+    PostMaker postMaker;
+
+    Thread(this.threadInfo):postMaker=PostMaker(threadInfo);
 
     Future<bool> update() async{
         final String uri=
@@ -99,6 +106,9 @@ class Thread{
     }
 
     bool _parseDat(String dat){
+        final HtmlUnescape htmlUnescapeInstance=HtmlUnescape();
+        String htmlUnescape(String data)=>htmlUnescapeInstance.convert(data);
+
         bool parseLine(int index,String line){
             String name;
             String mailTo;
@@ -114,7 +124,7 @@ class Thread{
                     return null;
                 }else{
                     return line.substring(begin,end).replaceAll("<br>", "\n");
-                    // return _htmlUnescape.convert(line.substring(begin,end).replaceAll("<br>", "\n"));
+                    // return htmlUnescape(line.substring(begin,end).replaceAll("<br>", "\n"));
                 }
             }
             
@@ -124,7 +134,7 @@ class Thread{
             tmp=nextSearch();
             if(tmp!=null){
                 // name=tmp.trim();
-                name=_htmlUnescape.convert(tmp).trim();
+                name=htmlUnescape(tmp).trim();
             }else{
                 return false;
             }
@@ -133,7 +143,7 @@ class Thread{
             tmp=nextSearch();
             if(tmp!=null){
                 // mailTo=tmp.trim();
-                mailTo=_htmlUnescape.convert(tmp).trim();
+                mailTo=htmlUnescape(tmp).trim();
             }else{
                 return false;
             }
@@ -145,11 +155,11 @@ class Thread{
                 if(pId>=0){
                     // postAt=tmp.substring(0,pId).trim();
                     // userId=tmp.substring(pId+"ID:".length).trim();
-                    postAt=_htmlUnescape.convert(tmp.substring(0,pId)).trim();
-                    userId=_htmlUnescape.convert(tmp.substring(pId+"ID:".length)).trim();
+                    postAt=htmlUnescape(tmp.substring(0,pId)).trim();
+                    userId=htmlUnescape(tmp.substring(pId+"ID:".length)).trim();
                 }else{
                     // postAt=tmp.trim();
-                    postAt=_htmlUnescape.convert(tmp).trim();
+                    postAt=htmlUnescape(tmp).trim();
                     userId="";
                 }
             }else{
@@ -159,7 +169,7 @@ class Thread{
             // get message
             tmp=nextSearch();
             if(tmp!=null){
-                message=_htmlUnescape.convert(tmp.replaceAll(RegExp(r"<.*?>"), ""));
+                message=htmlUnescape(tmp.replaceAll(RegExp(r"<.*?>"), ""));
             }else{
                 return false;
             }
@@ -231,7 +241,6 @@ class PostMaker{
             "https://"
             "${_threadInfo.boardInfo.server}"
             "/test/bbs.cgi";
-        // const uriStr = "https://httpbin.org/post";
         final header = _makeHeader();
         final body = await _makeBody();
 
@@ -246,7 +255,6 @@ class PostMaker{
                 _cookie.set(elem);
             }
         }else if(response.headers.containsKey("Set-Cookie")){
-            // _cookie = response.headers["Set-Cookie"];
             final cookies=splitMultiSetCookie(response.headers["Set-Cookie"]!);
             for(var elem in cookies){
                 _cookie.set(elem);
@@ -257,17 +265,15 @@ class PostMaker{
     Map<String,String> _makeHeader(){
         Map<String,String> header={};
         header["Content-Type"] = "application/x-www-form-urlencoded; charset=shift_jis";
-        // header["User-Agent"] = "dfe-bbs-browser/1.0.0";
-        header["User-Agent"] = 
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36";
+        header["User-Agent"] = Config.getInstance().postUserAgent;
         header["Referer"] = "https://${threadInfo.boardInfo.server}/test/read.cgi"
                             "/${threadInfo.boardInfo.name}/${threadInfo.key}";
         if(_cookie.isNotEmpty){
             final list=<String>[];
-            _cookie.get().forEach((key, value){
+            _cookie.get(_threadInfo.boardInfo.server).forEach((key, value){
                 list.add("$key=$value");
             });
-            header["Cookie"]=list.join(";");
+            header["Cookie"]=list.join("; ");
         }
         return header;
     }
@@ -282,12 +288,12 @@ class PostMaker{
         var str=mapToStr({
             "bbs":_threadInfo.boardInfo.name,
             "key":_threadInfo.key,
-            // "time":(DateTime.now().toUtc().microsecondsSinceEpoch~/1000).toString(),
             "time":_time,
             "FROM":name,
             "mail":mailTo,
             "MESSAGE":message,
-            "subject":""
+            "subject":"",
+            "feature":"confirmed"
         });
         return await utf8Tosjis(str);
     }

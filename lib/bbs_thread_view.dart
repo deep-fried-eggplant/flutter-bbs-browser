@@ -7,6 +7,7 @@ import 'bbs_postmaker_view.dart';
 import 'configuration.dart';
 
 
+
 class ThreadView extends StatefulWidget{
     const ThreadView({super.key});
 
@@ -21,9 +22,9 @@ class _ThreadViewState extends State<ThreadView>{
 
     @override
     void initState(){
+        super.initState();
         threadManager.setDrawer(draw);
         threadManager.thread?.update();
-        super.initState();
     }
 
     @override
@@ -45,7 +46,10 @@ class _ThreadViewState extends State<ThreadView>{
                         color: config.color.onPrimary,
                     ),
                     IconButton(
-                        onPressed: (){},
+                        onPressed: (){
+                            threadManager.close();
+
+                        },
                         icon: Icon(Icons.close,color: config.color.onPrimary,)
                     )
                 ],
@@ -86,8 +90,8 @@ class _ThreadViewState extends State<ThreadView>{
                                         context: context,
                                         builder: (buildContext){
                                             return AlertDialog(
-                                                title: const Text("make new post"),
-                                                content: PostMakerView(thread.threadInfo),
+                                                title: const Text("新規書き込み"),
+                                                content: PostMakerView(thread.postMaker),
                                             );
                                         }
                                     );
@@ -156,7 +160,6 @@ class _ThreadViewState extends State<ThreadView>{
         if(thread != null){
             if(await thread.update()){
                 var list = List<Widget>.empty(growable: true);
-                // final bodyTextStyle = TextStyle(color: config.color.foreground);
                 final bodyTextStyle2 = TextStyle(color: config.color.foreground2);
                 for(var item in thread.postList){
                     list.add(
@@ -201,10 +204,6 @@ class _ThreadViewState extends State<ThreadView>{
                                     Container(
                                         width: double.infinity,
                                         padding: const EdgeInsets.all(5),
-                                        // child: Text(
-                                        //     item.message,
-                                        //     style: bodyTextStyle,
-                                        // )
                                         child: _messageView(item.message),
                                     ),
                                 ],
@@ -220,7 +219,7 @@ class _ThreadViewState extends State<ThreadView>{
                     )
                 );
             }else{
-                return const Text("failed to get");
+                return const Text("スレッド取得に失敗しました");
             }
         }else{
             return const SizedBox();
