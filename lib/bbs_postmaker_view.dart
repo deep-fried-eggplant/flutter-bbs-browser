@@ -101,18 +101,15 @@ class PostMakerView extends StatelessWidget{
                     navigatorState.pop();
                     return;
                 }
-                // final doc = html.parse(body);
-                // debugPrint(doc.toString());
-                // for(final child in doc.children){
-                    // child
-                // }
-                
+                debugPrint("kakikomi kakininn!!!");
                 showDialog(
                     context: context,
                     builder: (buildContext){
                         return AlertDialog(
-                            // content:Text(body.replaceAll("<br>", "\n")),
-                            content: Html(data: body,),
+                            content:SelectableText(body.replaceAll("<br>", "\n")),
+                            // content: SingleChildScrollView(
+                            //     child: Html(data: body,),
+                            // ),
                             actions: [
                                 TextButton(
                                     child: const Text("send"),

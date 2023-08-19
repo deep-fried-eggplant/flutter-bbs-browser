@@ -8,8 +8,8 @@ typedef ThreadDrawerFunc = void Function();
 class BoardManager{
     static final _instance = BoardManager._internal();
 
-    Board? _board = Board(BoardInfo("agree.5ch.net","operate"));
-    // Board? _board = Board(BoardInfo("sannan.nl","unsaku"));
+    // Board? _board = Board(BoardInfo("egg.5ch.net","software"));
+    Board? _board = Board(BoardInfo("sannan.nl","unsaku"));
     Board? get board => _board;
 
     BoardDrawerFunc _drawer = () {};

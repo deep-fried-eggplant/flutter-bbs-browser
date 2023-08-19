@@ -11,7 +11,6 @@ class Cookie{
     Cookie(this._host);
 
     bool set(String setCookieStr){
-        debugPrint("set-cookie -> $setCookieStr");
         final split = setCookieStr.split(";");
         if(split.isEmpty){
             return false;
@@ -22,7 +21,6 @@ class Cookie{
         String? path;
         {
             final nameAndValue = split[0].split("=");
-            debugPrint(nameAndValue.toString());
             if(nameAndValue.length!=2){
                 return false;
             }else{
@@ -79,14 +77,14 @@ class Cookie{
         final StringBuffer buffer=StringBuffer("[ ");
         for(final key in _values.keys){
             final value=_values[key]!;
-            buffer.write("$key=$value");
+            buffer.write("$key=${value.value}");
             if(value.expires==null && value.domain==null && value.path==null){
                 buffer.write(", ");
                 continue;
             }
             buffer.write("( ");
             if(value.expires!=null){
-                buffer.write("Exp:${value.expires!.toIso8601String() }");
+                buffer.write("Exp:${value.expires!.toIso8601String()} ");
             }
             if(value.domain!=null){
                 buffer.write("Domain:${value.domain!} ");
