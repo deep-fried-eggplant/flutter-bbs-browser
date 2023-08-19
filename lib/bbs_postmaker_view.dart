@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'bbs_basedata.dart';
-// import 'package:html/parser.dart' as html;
-import 'package:flutter_html/flutter_html.dart';
 
 class PostMakerView extends StatelessWidget{
     final PostMaker _postMaker;
@@ -88,7 +86,7 @@ class PostMakerView extends StatelessWidget{
             context: context,
             builder: (buildContext){
                 return const AlertDialog(
-                    content: Text("sending..."),
+                    content: Text("送信中..."),
                 );
             }
         );
@@ -101,21 +99,29 @@ class PostMakerView extends StatelessWidget{
                     navigatorState.pop();
                     return;
                 }
-                debugPrint("kakikomi kakininn!!!");
                 showDialog(
                     context: context,
                     builder: (buildContext){
                         return AlertDialog(
-                            content:SelectableText(body.replaceAll("<br>", "\n")),
-                            // content: SingleChildScrollView(
-                            //     child: Html(data: body,),
-                            // ),
+                            // content:SelectableText(body.replaceAll("<br>", "\n")),
+                            content: SingleChildScrollView(
+                                child: _htmlDialog(body),
+                            ),
                             actions: [
                                 TextButton(
-                                    child: const Text("send"),
-                                    onPressed: (){
-                                        _postMaker.send();
+                                    child: const Text("書き込む"),
+                                    onPressed: ()async{
                                         Navigator.of(buildContext).pop();
+                                        showDialog(
+                                            barrierDismissible: false,
+                                            context: buildContext,
+                                            builder: (c){
+                                                return const AlertDialog(
+                                                    content: Text("送信中..."),
+                                                );
+                                            }
+                                        );
+                                        await _postMaker.send();
                                         navigatorState.pop();
                                     },
                                 )
@@ -140,4 +146,16 @@ Future<void> _debugPrintResponse(Response response) async{
     }
     debugPrint("\n[BODY]");
     debugPrint(await futHtml);
+}
+
+Widget _htmlDialog(String data){
+    final body=RegExp(r"<body[\s\S]*</body>").firstMatch(data)?[0];
+    if(body==null){
+        return const Text("failed");
+    }
+    String text = 
+        body.replaceAll("\n", "")
+        .replaceAll("<br>", "\n")
+        .replaceAll(RegExp(r"<.*?>"), "");
+    return SelectableText(text);
 }
