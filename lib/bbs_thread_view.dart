@@ -6,7 +6,99 @@ import 'bbs_manager.dart';
 import 'bbs_postmaker_view.dart';
 import 'configuration.dart';
 
+class ThreadView_ extends StatelessWidget{
+    static final config = Config.getInstance();
 
+    final Thread thread;
+
+    const ThreadView_(this.thread,{super.key});
+
+    @override
+    Widget build(BuildContext context){
+        return Scaffold(
+            appBar: AppBar(
+                backgroundColor: config.color.primary,
+                title: Text(
+                    thread.threadInfo.title.replaceAll("\n", " "),
+                    style: TextStyle(
+                        color: config.color.onPrimary
+                    ),    
+                ),
+                actions: [
+                    IconButton(
+                        onPressed: draw,
+                        icon: Icon(Icons.update,color: config.color.onPrimary,),
+                        color: config.color.onPrimary,
+                    ),
+                    IconButton(
+                        onPressed: (){
+                            // threadManager.close();
+
+                        },
+                        icon: Icon(Icons.close,color: config.color.onPrimary,)
+                    )
+                ],
+            ),
+            body: Center(
+                child: _ThreadViewBody(thread,key: super.key)
+            ),
+            bottomNavigationBar: BottomAppBar(
+                color: config.color.primary,
+                elevation: 0,
+                height: 50,
+                child: Row(
+                    children: [
+                        const Expanded(child: SizedBox()),
+                        IconButton(
+                            onPressed: (){
+                                showDialog(
+                                    context: context,
+                                    builder: (buildContext){
+                                        return AlertDialog(
+                                            title: const Text("新規書き込み"),
+                                            content: PostMakerView(thread.postMaker),
+                                        );
+                                    }
+                                );
+                            },
+                            icon: Icon(
+                                Icons.add,
+                                color: config.color.onPrimary,    
+                            )
+                        )
+                    ],
+                ),
+            ),
+        );
+    }
+    void draw(){}
+}
+
+class _ThreadViewBody extends StatefulWidget{
+    final Thread thread;
+    
+    const _ThreadViewBody(this.thread,{super.key});
+
+    @override
+    State<_ThreadViewBody> createState(){
+        return _ThreadViewBodyState();
+    }
+}
+class _ThreadViewBodyState extends State<_ThreadViewBody>{
+    static final config = Config.getInstance();
+
+    @override
+    Widget build(BuildContext context){
+        final thread = widget.thread;
+
+        return FutureBuilder(
+            future: thread.update(),
+            builder: (context1, snapshot) {
+                return const SizedBox();
+            },
+        );
+    }
+}
 
 class ThreadView extends StatefulWidget{
     const ThreadView({super.key});
@@ -113,118 +205,117 @@ class _ThreadViewState extends State<ThreadView>{
     }
 
     static Future<Widget> _buildContent(Thread? thread) async{
-        RichText nameView(String name){
-            var result = List<TextSpan>.empty(growable: true);
-            var boldEndStrList = "<b>$name</b>".split("</b>");
-            final headerTextStyle = TextStyle(
-                color: config.color.foreground2
+        if(thread == null){
+            return const SizedBox();
+        }else if(await thread.update()==false){
+            return const Text("スレッドの取得に失敗しました");
+        }
+
+        final list = List<Widget>.empty(growable: true);
+        final bodyTextStyle2 = TextStyle(color: config.color.foreground2);
+        for(final item in thread.postList){
+            list.add(
+                Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.all(0),
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                        color: config.color.background,
+                        border: const Border.symmetric(horizontal: BorderSide(width:0.2))
+                    ),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                            Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                    Container(
+                                        padding: const EdgeInsets.only(right: 5),
+                                        child: Text(
+                                            item.index.toString(),
+                                            style: bodyTextStyle2
+                                        )
+                                    ),
+                                    Flexible(
+                                        child: Wrap(
+                                            children: [
+                                                _nameView(item.name),
+                                                Text(
+                                                    "[${item.mailTo}]",
+                                                    style: bodyTextStyle2
+                                                ),
+                                                Text(
+                                                    "${item.postAt} ${item.userId}",
+                                                    style: bodyTextStyle2
+                                                ),
+                                            ]
+                                        )
+                                    )
+                                ],
+                            ),
+                            Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(5),
+                                child: _messageView(item.message),
+                            ),
+                        ],
+                    )
+                ),
+            );        
+        }
+        return SingleChildScrollView(
+            child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: list,
+            )
+        );
+    }
+}
+
+Widget _nameView(String name){
+    final config = Config.getInstance();
+    var result = List<TextSpan>.empty(growable: true);
+    var boldEndStrList = "<b>$name</b>".split("</b>");
+    final headerTextStyle = TextStyle(
+        color: config.color.foreground2
+    );
+    final headerTextStyleBold = TextStyle(
+        color: config.color.foreground2,
+        fontWeight: FontWeight.bold
+    );
+    for(var boldEndStr in boldEndStrList){
+        if(boldEndStr.isEmpty){
+            continue;
+        }
+        var boldBegin = boldEndStr.indexOf("<b>");
+        if(boldBegin==0){
+            result.add(
+                TextSpan(
+                    text: boldEndStr.substring("<b>".length),
+                    style: headerTextStyleBold
+                )
             );
-            final headerTextStyleBold = TextStyle(
-                color: config.color.foreground2,
-                fontWeight: FontWeight.bold
+        }else if(boldBegin>0){
+            result.add(
+                TextSpan(
+                    text: boldEndStr.substring(0,boldBegin),
+                    style: headerTextStyle
+                )
             );
-            for(var boldEndStr in boldEndStrList){
-                if(boldEndStr.isEmpty){
-                    continue;
-                }
-                var boldBegin = boldEndStr.indexOf("<b>");
-                if(boldBegin==0){
-                    result.add(
-                        TextSpan(
-                            text: boldEndStr.substring("<b>".length),
-                            style: headerTextStyleBold
-                        )
-                    );
-                }else if(boldBegin>0){
-                    result.add(
-                        TextSpan(
-                            text: boldEndStr.substring(0,boldBegin),
-                            style: headerTextStyle
-                        )
-                    );
-                    result.add(
-                        TextSpan(
-                            text: boldEndStr.substring(boldBegin+"<b>".length),
-                            style: headerTextStyleBold
-                        )
-                    );
-                }
-            }
-            return RichText(
-                text: TextSpan(
-                    children: result
+            result.add(
+                TextSpan(
+                    text: boldEndStr.substring(boldBegin+"<b>".length),
+                    style: headerTextStyleBold
                 )
             );
         }
-
-        if(thread != null){
-            if(await thread.update()){
-                var list = List<Widget>.empty(growable: true);
-                final bodyTextStyle2 = TextStyle(color: config.color.foreground2);
-                for(var item in thread.postList){
-                    list.add(
-                        Container(
-                            width: double.infinity,
-                            margin: const EdgeInsets.all(0),
-                            padding: const EdgeInsets.all(5),
-                            decoration: BoxDecoration(
-                                color: config.color.background,
-                                border: const Border.symmetric(horizontal: BorderSide(width:0.2))
-                            ),
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                    Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                            Container(
-                                                padding: const EdgeInsets.only(right: 5),
-                                                child: Text(
-                                                    item.index.toString(),
-                                                    style: bodyTextStyle2
-                                                )
-                                            ),
-                                            Flexible(
-                                                child: Wrap(
-                                                    children: [
-                                                        nameView(item.name),
-                                                        Text(
-                                                            "[${item.mailTo}]",
-                                                            style: bodyTextStyle2
-                                                        ),
-                                                        Text(
-                                                            "${item.postAt} ${item.userId}",
-                                                            style: bodyTextStyle2
-                                                        ),
-                                                    ]
-                                                )
-                                            )
-                                        ],
-                                    ),
-                                    Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.all(5),
-                                        child: _messageView(item.message),
-                                    ),
-                                ],
-                            )
-                        ),
-                    );        
-                }
-                return SingleChildScrollView(
-                    child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: list,
-                    )
-                );
-            }else{
-                return const Text("スレッド取得に失敗しました");
-            }
-        }else{
-            return const SizedBox();
-        }
     }
+    return RichText(
+        text: TextSpan(
+            children: result
+        )
+    );
 }
 
 Widget _messageView(String message){
