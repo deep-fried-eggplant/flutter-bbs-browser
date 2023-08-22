@@ -14,6 +14,8 @@ class AppViewManager{
     AppViewManager._internal();
     factory AppViewManager.getInstance() => _instance;
 
+    
+
 }
 
 class AppView{

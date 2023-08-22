@@ -90,14 +90,108 @@ class _ThreadViewBodyState extends State<_ThreadViewBody>{
     @override
     Widget build(BuildContext context){
         final thread = widget.thread;
-
+        NavigatorState? loadingNavigator;
         return FutureBuilder(
             future: thread.update(),
             builder: (context1, snapshot) {
-                return const SizedBox();
+                if(snapshot.hasData){
+                    loadingNavigator?.pop();
+                    if(snapshot.data!){
+                        return _buildContent(thread);
+                    }else{
+                        return const Text("スレッドの取得に失敗しました");
+                    }
+                }else if(snapshot.hasError){
+                    final error = snapshot.error!;
+                    debugPrint(error.toString());
+                    loadingNavigator?.pop();
+                    return Container(
+                        color: config.color.background,
+                        child: Text(
+                            error.toString(),
+                            style: TextStyle(
+                                color: config.color.foreground
+                            ),    
+                        ),
+                    );
+                }else{
+                    showDialog(
+                        context: context1,
+                        builder: (buildContext){
+                            loadingNavigator=Navigator.of(buildContext);
+                            return const AlertDialog(
+                                content: Text("取得中..."),
+                            );
+                        }
+                    );
+                    return Container(color: config.color.background);
+                }
             },
         );
     }
+}
+
+Widget _buildContent(Thread thread){
+    final config = Config.getInstance();
+    final list = List<Widget>.empty(growable: true);
+    final bodyTextStyle2 = TextStyle(color: config.color.foreground2);
+    for(final item in thread.postList){
+        list.add(
+            Container(
+                width: double.infinity,
+                margin: const EdgeInsets.all(0),
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                    color: config.color.background,
+                    border: const Border.symmetric(horizontal: BorderSide(width:0.2))
+                ),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                        Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                                Container(
+                                    padding: const EdgeInsets.only(right: 5),
+                                    child: Text(
+                                        item.index.toString(),
+                                        style: bodyTextStyle2
+                                    )
+                                ),
+                                Flexible(
+                                    child: Wrap(
+                                        children: [
+                                            _nameView(item.name),
+                                            Text(
+                                                "[${item.mailTo}]",
+                                                style: bodyTextStyle2
+                                            ),
+                                            Text(
+                                                "${item.postAt} ${item.userId}",
+                                                style: bodyTextStyle2
+                                            ),
+                                        ]
+                                    )
+                                )
+                            ],
+                        ),
+                        Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(5),
+                            child: _messageView(item.message),
+                        ),
+                    ],
+                )
+            ),
+        );        
+    }
+    return SingleChildScrollView(
+        child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: list,
+        )
+    );
 }
 
 class ThreadView extends StatefulWidget{
@@ -122,6 +216,22 @@ class _ThreadViewState extends State<ThreadView>{
     @override
     Widget build(BuildContext context){
         var thread = threadManager.thread;
+        NavigatorState? loadingNavigator;
+        if(thread==null){
+            return const SizedBox();
+        }
+        Future.delayed(Duration.zero).then((value){
+            showDialog(
+                barrierDismissible: false,
+                context: context,
+                builder: (buildContext){
+                    loadingNavigator = Navigator.of(buildContext);
+                    return const AlertDialog(
+                        content: Text("取得中..."),
+                    );
+                }
+            );
+        });
         return Scaffold(
             appBar: AppBar(
                 backgroundColor: config.color.primary,
@@ -149,10 +259,12 @@ class _ThreadViewState extends State<ThreadView>{
             body: Center(
                 child: FutureBuilder(
                     future: _buildContent(thread),
-                    builder: (context, snapshot) {
+                    builder: (context1, snapshot){
                         if(snapshot.hasData){
+                            loadingNavigator?.pop();
                             return snapshot.data!;
                         }else if(snapshot.hasError){
+                            loadingNavigator?.pop();
                             return Container(
                                 color: config.color.background,
                                 child: Text(
