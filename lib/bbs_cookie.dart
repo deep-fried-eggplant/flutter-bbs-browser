@@ -19,6 +19,7 @@ class Cookie{
         DateTime? expires;
         String? domain;
         String? path;
+        bool secure = false;
         {
             final nameAndValue = split[0].split("=");
             if(nameAndValue.length!=2){
@@ -43,11 +44,17 @@ class Cookie{
             }
             if(item.startsWith(RegExp(r"(D|d)omain="))){
                 const start="domain".length;
-                domain=item.substring(start).trim();
+                final String tmp = item.substring(start).trim();
+                if(host.endsWith(tmp)){
+                    domain=tmp;
+                }
             }
             if(item.startsWith(RegExp(r"(P|p)ath="))){
                 const start="path=".length;
                 path=item.substring(start).trim();
+            }
+            if(item == "Secure" || item == "secure"){
+                secure=true;
             }
         }
         _values[name]=_CookieValue(
@@ -55,6 +62,7 @@ class Cookie{
             expires : expires,
             domain  : domain,
             path    : path,
+            secure  : secure
         );
         return true;
     }
@@ -63,18 +71,17 @@ class Cookie{
         Map<String,String> cookie={};
         for(var key in _values.keys){
             final value=_values[key]!;
-            if(value.expires==null){
-                cookie[key]=value.value;
-            }else if(value.expires!.difference(now).isNegative == false){
+            if(_cookieAvailable(_host, value, uri, now)){
                 cookie[key]=value.value;
             }
         }
         return cookie;
     }
+    
 
     @override
     String toString(){
-        final StringBuffer buffer=StringBuffer("[ ");
+        final StringBuffer buffer=StringBuffer("$_host: [ ");
         for(final key in _values.keys){
             final value=_values[key]!;
             buffer.write("$key=${value.value}");
@@ -92,26 +99,87 @@ class Cookie{
             if(value.path!=null){
                 buffer.write("Path:${value.path!} ");
             }
+            if(value.secure){
+                buffer.write("Secure ");
+            }
             buffer.write("), ");
         }
         return buffer.toString();
     }
+
+    List<String> toStringList(){
+        final list = <String>[];
+
+        for(final name in _values.keys){
+            final value = _values[name]!;
+            final tmp = <String>[];
+
+            tmp.add("$name=${value.value}");
+            if(value.expires!=null){
+                tmp.add("Expires=${_dateTimeToString(value.expires!)}");
+            }
+            if(value.domain!=null){
+                tmp.add("Domain=${value.domain!}");
+            }
+            if(value.path!=null){
+                tmp.add("Path=${value.path!}");
+            }
+            if(value.secure){
+                tmp.add("Secure");
+            }
+
+            list.add(tmp.join("; "));
+        }
+
+        return list;
+    }
+
+    void clean(){
+        final DateTime now = DateTime.now();
+
+        final removeList = <String>[];
+
+        for(final name in _values.keys){
+            final value = _values[name]!;
+
+            if(value.expires==null){
+                removeList.add(name);
+            }else if(value.expires!.difference(now).isNegative){
+                removeList.add(name);
+            }
+        }
+
+        for(final key in removeList){
+            _values.remove(key);
+        }
+    }
 }
+
 
 class _CookieValue{
     final String value;
-    DateTime? expires;
-    String? domain;
-    String? path;
+    final DateTime? expires;
+    final String? domain;
+    final String? path;
+    final bool secure;
 
-    _CookieValue({required this.value,this.expires,this.domain,this.path});
+    _CookieValue({required this.value,this.expires,this.domain,this.path,this.secure=false});
+}
+
+String _dateTimeToString(DateTime dateTime){
+    const months=["dummy","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const week=["dummy","Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+    final utc = dateTime.toUtc();
+    return 
+        "${week[utc.weekday]}, "
+        "${utc.day} ${months[utc.month]} ${utc.year} "
+        "${utc.hour}:${utc.minute}:${utc.second} GMT";
 }
 
 DateTime? _parseDateTime(String dateTimeString){
     const months=["dummy","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     try{
         final split=dateTimeString.split(" ");
-
         if(split.length==6){
             // final dayOfWeek = split[0];
             final day   =int.parse(split[1]);
@@ -164,4 +232,60 @@ DateTime? _maxAgeToExpire(String maxAgeStr){
 List<String> splitMultiSetCookie(String setCookieStr){
     RegExp regExp = RegExp(r",(?=[^ ;]*=)");
     return setCookieStr.split(regExp);
+}
+
+bool _cookieAvailable(String host, _CookieValue value, String uri, DateTime now){
+    bool matchDomain(String url,String domain,{required bool perfect}){
+        return
+            //if perfect
+            perfect ?
+                RegExp("https?://$domain((\\?|/).*)?\$").matchAsPrefix(url)!=null
+            ://else
+                RegExp("https?://([\\w\\-]*\\.)*$domain((\\?|/).*)?\$").matchAsPrefix(url)!=null;
+    }
+    bool matchPath(String url,String path){
+        if(path=="/" || path.isEmpty){
+            return true;
+        }
+        final int sep = 
+            url.startsWith("http://") ? url.indexOf("/","http://".length) :
+            url.startsWith("https://")? url.indexOf("/","https://".length):
+            -1;
+        if(sep<0){
+            return false;
+        }
+        final String destPath = url.substring(sep);
+        if(destPath.startsWith(path)){
+            if(destPath.length == path.length){
+                return true;
+            }else{
+                return destPath.substring(path.length).startsWith(RegExp(r"(\?|/)"));
+            }
+        }else{
+            return false;
+        }
+    }
+    if(value.secure && !uri.startsWith("https://")){
+        return false;
+    }
+    if(value.expires!=null){
+        if(value.expires!.difference(now).isNegative){
+            return false;
+        }
+    }
+    if(value.domain!=null){
+        if(matchDomain(uri, value.domain!, perfect: false) == false){
+            return false;
+        }
+    }else{
+        if(matchDomain(uri, host, perfect: true)  == false){
+            return false;
+        }
+    }
+    if(value.path!=null){
+        if(matchPath(uri, value.path!) == false){
+            return false;
+        }
+    }
+    return true;
 }

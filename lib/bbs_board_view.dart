@@ -74,13 +74,25 @@ class _BoardViewState extends State<BoardView>{
                 child: Row(
                     children: [
                         const Expanded(child: SizedBox(),),
-                        IconButton(
+                        // IconButton(
+                        //     onPressed: (){
+                        //         debugPrint("plus");
+                        //     },
+                        //     icon: Icon(
+                        //         Icons.add,
+                        //         color: config.color.onPrimary,
+                        //     )
+                        // )
+                        OutlinedButton(
                             onPressed: (){
                                 debugPrint("plus");
                             },
-                            icon: Icon(
-                                Icons.add,
-                                color: config.color.onPrimary,
+                            // style: ButtonStyle(
+                            //     for
+                            // ),
+                            child: Text(
+                                "書き込み",
+                                style: TextStyle(color: config.color.onPrimary),
                             )
                         )
                     ],
@@ -94,10 +106,36 @@ class _BoardViewState extends State<BoardView>{
     }
 
     static Future<Widget> _buildContent(Board? board) async{
+        final TextStyle titleTextStyle = TextStyle(color: config.color.foreground);
+        final TextStyle titleTextStyle2 = TextStyle(color: config.color.foreground3);
+
+        String dateTimeToString(DateTime dt){
+            String w2(int val){
+                return val.toString().padLeft(2,"0");
+            }
+            String w4(int val){
+                return val.toString().padLeft(4,"0");
+            }
+            return "${w4(dt.year)}/${w2(dt.month)}/${w2(dt.day)} ${w2(dt.hour)}:${w2(dt.minute)}";
+        }
+
         if(board != null){
             if(await board.update()){
                 var list = List<Widget>.empty(growable: true);
                 for(var item in board.threadInfoList){
+                    final RegExp subTitleRegExp = RegExp(r" \[([^\]\]]*)★\]$");
+                    final RegExpMatch? match = subTitleRegExp.firstMatch(item.title);
+                    late final String mainTitle;
+                    late final String subTitle;
+                    if(match!=null){
+                        // final int matchLen = match[0]!.length;
+                        mainTitle = item.title.substring(0,item.title.length-match[0]!.length);
+                        subTitle = match.groupCount>=1 ? match[1]! : "";
+                        // subTitle = match[0]!;
+                    }else{
+                        mainTitle = item.title;
+                        subTitle = "";
+                    }
                     list.add(
                         InkWell(
                             onTap: (){
@@ -111,11 +149,31 @@ class _BoardViewState extends State<BoardView>{
                                     color: config.color.background,
                                     border: const Border.symmetric(horizontal: BorderSide(width: 0.2))
                                 ),
-                                child: Text(
-                                    item.title,
-                                    style: TextStyle(
-                                        color: config.color.foreground
-                                    ),
+                                child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                        Text(
+                                            mainTitle,
+                                            style: titleTextStyle,
+                                        ),
+                                        Row(
+                                            children: [
+                                                Text(
+                                                    dateTimeToString(item.createdAt),
+                                                    style: titleTextStyle2,
+                                                ),
+                                                Text(
+                                                    subTitle,
+                                                    style: titleTextStyle2,
+                                                ),
+                                                const Expanded(child: SizedBox()),
+                                                Text(
+                                                    item.length.toString(),
+                                                    style: titleTextStyle2,
+                                                )
+                                            ],
+                                        )
+                                    ],
                                 ),
                             ),
                         )

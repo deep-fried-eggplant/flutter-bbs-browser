@@ -1,3 +1,4 @@
+import 'package:bbs_browser/bbs_user_data.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'bbs_basedata.dart';
@@ -6,6 +7,8 @@ class PostMakerView extends StatelessWidget{
     final PostMaker _postMaker;
 
     const PostMakerView(this._postMaker,{super.key});
+
+    static final userData = UserData.getInstance();
 
     @override
     Widget build(BuildContext context){
@@ -122,6 +125,7 @@ class PostMakerView extends StatelessWidget{
                                             }
                                         );
                                         await _postMaker.send();
+                                        _debugPrintResponse(_postMaker.response);
                                         navigatorState.pop();
                                     },
                                 )
@@ -132,18 +136,67 @@ class PostMakerView extends StatelessWidget{
             });
         });
         _debugPrintResponse(_postMaker.response);
+        
     }
+}
+
+Future<void> _sendAndShowResult(
+    BuildContext context,NavigatorState makerNavigator,PostMaker postMaker
+)async{
+    showDialog(
+        barrierDismissible: false,
+        context: context,
+        builder: (buildContext){
+            return const AlertDialog(
+                content: Text("送信中..."),
+            );
+        }
+    );
+    await postMaker.send().then((value)async{
+        Navigator.of(context).pop();
+        debugPrint(postMaker.cookie.toString());
+        final futBody=sjisToUtf8(postMaker.response.bodyBytes);
+        futBody.then((body){
+            if(!body.contains("書き込み確認")){
+                makerNavigator.pop();
+                return;
+            }
+            showDialog(
+                context: context,
+                builder: (context1){
+                    return AlertDialog(
+                        content: SingleChildScrollView(
+                            child: _htmlDialog(body),
+                        ),
+                        actions: [
+                            TextButton(
+                                child: const Text("書き込む"),
+                                onPressed: ()async{
+                                    Navigator.of(context1).pop();
+                                    await _sendAndShowResult(
+                                        context1,
+                                        makerNavigator,
+                                        postMaker
+                                    );
+                                },
+                            )
+                        ],
+                    );
+                }
+            );
+        });
+    });
 }
 
 Future<void> _debugPrintResponse(Response response) async{
     final futHtml=sjisToUtf8(response.bodyBytes);
-    debugPrint("[STATUS]");
-    debugPrint(response.statusCode.toString());
-    debugPrint("\n[HEADERS]");
-    for(final key in response.headers.keys){
-        final value=response.headers[key];
-        debugPrint("$key\t: $value");
-    }
+    // debugPrint("[STATUS]");
+    // debugPrint(response.statusCode.toString());
+    // debugPrint("\n[HEADERS]");
+    // for(final key in response.headers.keys){
+    //     final value=response.headers[key];
+    //     debugPrint("$key\t: $value");
+    // }
     debugPrint("\n[BODY]");
     debugPrint(await futHtml);
 }

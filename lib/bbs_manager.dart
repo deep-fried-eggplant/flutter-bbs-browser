@@ -9,7 +9,15 @@ class BoardManager{
     static final _instance = BoardManager._internal();
 
     // Board? _board = Board(BoardInfo("egg.5ch.net","software"));
-    Board? _board = Board(BoardInfo("sannan.nl","livegalileo"));
+    Board? _board = Board(BoardInfo(
+        "https",
+        // "sannan.nl",
+        // "livegalileo",
+        // "防弾3G"
+        "egg.5ch.net",
+        "software",
+        "ソフトウェア"
+    ));
     Board? get board => _board;
 
     BoardDrawerFunc _drawer = () {};

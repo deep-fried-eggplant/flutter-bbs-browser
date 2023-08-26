@@ -3,13 +3,17 @@ import 'package:flutter/material.dart';
 class Config{
     static final Config _instance = Config._internal();
 
+    static const String appName = "DFE-ChViewer";
+    static const String appVersion = "1.0.0";
+
     Config._internal();
     factory Config.getInstance() => _instance;
 
+
     ColorConfig color   = ColorConfig.light;
     
-    final String getUserAgent = "Monazilla/1.0.0 DFE-ChViewer/1.0.0";
-    final String postUserAgent= "Monazilla/1.0.0 DFE-ChViewer/1.0.0";
+    final String getUserAgent = "Monazilla/1.0.0 $appName/$appVersion";
+    final String postUserAgent= "Monazilla/1.0.0 $appName/$appVersion";
 }
 
 class ColorConfig{

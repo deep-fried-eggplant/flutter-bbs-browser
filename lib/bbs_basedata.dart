@@ -4,6 +4,61 @@ import 'package:http/http.dart' as http;
 import 'package:html_unescape/html_unescape.dart';
 import 'package:charset_converter/charset_converter.dart';
 import 'bbs_cookie.dart';
+import 'bbs_user_data.dart';
+
+class BBS{
+    final List<BBSCategory> _menu=[];
+
+    
+
+    List<BBSCategory>? _parseBBSMenu(String html){
+        List<BBSCategory> list=[];
+
+        final matches = 
+            RegExp(r"<br><br><b>(.*?)</b>((<br><a.*?</a>)*)").allMatches(html.replaceAll("\n", ""));
+
+        for(final match in matches){
+            if(match.groupCount!=3){
+                continue;
+            }
+            
+            final String catName = match[1]!;
+            final List<BoardInfo> boardInfoList = [];
+            // debugPrint(name);
+            final List<String> linkList = match[2]!.split("<br>");
+            for(int li=1; li<linkList.length; ++li){
+                final String link = linkList[li];
+                final String? url = RegExp(r'(href|HREF)="(.*?)"').firstMatch(link)?[2];
+                if(url==null){
+                    continue;
+                }
+                final String protocol = url.substring(0,url.indexOf("://"));
+                final int sepIndex = url.indexOf("/",protocol.length+"://".length);
+                final String server = url.substring(protocol.length+"://".length,sepIndex);
+                final String path = url.substring(sepIndex+1);
+                final String name = link.substring(
+                    link.indexOf(">")+1,
+                    link.indexOf("<",link.indexOf(">"))
+                );
+                boardInfoList.add(BoardInfo(protocol, server, path, name));
+                // debugPrint("$name : $url");
+            }
+            if(boardInfoList.isNotEmpty){
+                list.add(BBSCategory(catName, boardInfoList));
+            }
+        }
+
+        return list;
+    }
+}
+
+class BBSCategory{
+    final String name;
+    final List<BoardInfo> boardInfoList;
+
+    BBSCategory(this.name,this.boardInfoList);
+
+}
 
 class Board{
     final BoardInfo boardInfo;
@@ -14,9 +69,7 @@ class Board{
 
     Future<bool> update() async{
         final String uri=
-            "https://${boardInfo.server}"
-            "/${boardInfo.name}"
-            "/subject.txt";
+            "${boardInfo.protocol}://${boardInfo.server}/${boardInfo.path}/subject.txt";
         final response = await http.get(Uri.parse(uri));
         debugPrint("$uri -> ${response.statusCode.toString()}");
         if(response.statusCode==200){
@@ -73,11 +126,12 @@ class Board{
 }
 
 class BoardInfo{
+    final String protocol;
     final String server;
+    final String path;
     final String name;
-    final String? nameToShow;
 
-    BoardInfo(this.server,this.name,{this.nameToShow});
+    BoardInfo(this.protocol,this.server,this.path,this.name);
 }
 
 class Thread{
@@ -92,7 +146,7 @@ class Thread{
     Future<bool> update() async{
         final String uri=
             "https://${threadInfo.boardInfo.server}"
-            "/${threadInfo.boardInfo.name}"
+            "/${threadInfo.boardInfo.path}"
             "/dat"
             "/${threadInfo.key}.dat";
         final response=await http.get(Uri.parse(uri));
@@ -124,7 +178,6 @@ class Thread{
                     return null;
                 }else{
                     return line.substring(begin,end).replaceAll("<br>", "\n");
-                    // return htmlUnescape(line.substring(begin,end).replaceAll("<br>", "\n"));
                 }
             }
             
@@ -218,6 +271,8 @@ Future<Uint8List> utf8Tosjis(String str) async{
 }
 
 class PostMaker{
+    static final userData = UserData.getInstance();
+    
     final ThreadInfo _threadInfo;
     ThreadInfo get threadInfo => _threadInfo;
     String name   ="";
@@ -230,21 +285,31 @@ class PostMaker{
     final Cookie _cookie;
     Cookie get cookie => _cookie;
 
+    final String _destUri;
+
     late http.Response response;
 
     PostMaker(this._threadInfo)
-    :   _cookie=Cookie(_threadInfo.boardInfo.server),
-        _time=(DateTime.now().millisecondsSinceEpoch~/1000).toString();
+    :   _cookie=userData.cookie(_threadInfo.boardInfo.server),
+        _time=(DateTime.now().millisecondsSinceEpoch~/1000).toString(),
+        _destUri=
+            "${_threadInfo.boardInfo.protocol}://${_threadInfo.boardInfo.server}/test/bbs.cgi"
+    {
+        debugPrint("PostMaker: Cookie : ${_cookie.toString()}");
+    }
 
     Future<void> send() async{
-        final uriStr = 
-            "https://"
-            "${_threadInfo.boardInfo.server}"
-            "/test/bbs.cgi";
+        // final uriStr = 
+        //     "https://"
+        //     "${_threadInfo.boardInfo.server}"
+        //     "/test/bbs.cgi";
+        // debugPrint(uriStr);
         final header = _makeHeader();
         final body = await _makeBody();
 
-        response = await _client.post(Uri.parse(uriStr),
+        debugPrint(header.toString());
+
+        response = await _client.post(Uri.parse(_destUri),
             headers: header,
             body: body,
         );
@@ -254,12 +319,15 @@ class PostMaker{
             for(var elem in cookies){
                 _cookie.set(elem);
             }
+            userData.save();
         }else if(response.headers.containsKey("Set-Cookie")){
             final cookies=splitMultiSetCookie(response.headers["Set-Cookie"]!);
             for(var elem in cookies){
                 _cookie.set(elem);
             }
+            userData.save();
         }
+        debugPrint(_cookie.toString());
     }
 
     Map<String,String> _makeHeader(){
@@ -267,13 +335,14 @@ class PostMaker{
         header["Content-Type"] = "application/x-www-form-urlencoded; charset=shift_jis";
         header["User-Agent"] = Config.getInstance().postUserAgent;
         header["Referer"] = "https://${threadInfo.boardInfo.server}/test/read.cgi"
-                            "/${threadInfo.boardInfo.name}/${threadInfo.key}";
+                            "/${threadInfo.boardInfo.path}/${threadInfo.key}";
         if(_cookie.isNotEmpty){
             final list=<String>[];
-            _cookie.get(_threadInfo.boardInfo.server).forEach((key, value){
+            _cookie.get(_destUri).forEach((key, value){
                 list.add("$key=$value");
             });
             header["Cookie"]=list.join("; ");
+            // debugPrint("Cookie to post: ${header}")
         }
         return header;
     }
@@ -286,7 +355,7 @@ class PostMaker{
             return buffer.toString();
         }
         var str=mapToStr({
-            "bbs":_threadInfo.boardInfo.name,
+            "bbs":_threadInfo.boardInfo.path,
             "key":_threadInfo.key,
             "time":_time,
             "FROM":name,

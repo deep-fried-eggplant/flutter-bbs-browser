@@ -218,7 +218,7 @@ class _ThreadViewState extends State<ThreadView>{
         var thread = threadManager.thread;
         NavigatorState? loadingNavigator;
         if(thread==null){
-            return const SizedBox();
+            return Container(color: config.color.background,);
         }
         Future.delayed(Duration.zero).then((value){
             showDialog(
@@ -236,7 +236,7 @@ class _ThreadViewState extends State<ThreadView>{
             appBar: AppBar(
                 backgroundColor: config.color.primary,
                 title: Text(
-                    (thread==null) ? "" : thread.threadInfo.title.replaceAll("\n", " "),
+                    thread.threadInfo.title.replaceAll("\n", " "),
                     style: TextStyle(
                         color: config.color.onPrimary
                     ),    
@@ -289,17 +289,15 @@ class _ThreadViewState extends State<ThreadView>{
                         const Expanded(child: SizedBox()),
                         IconButton(
                             onPressed: (){
-                                if(thread != null){
-                                    showDialog(
-                                        context: context,
-                                        builder: (buildContext){
-                                            return AlertDialog(
-                                                title: const Text("新規書き込み"),
-                                                content: PostMakerView(thread.postMaker),
-                                            );
-                                        }
-                                    );
-                                }
+                                showDialog(
+                                    context: context,
+                                    builder: (buildContext){
+                                        return AlertDialog(
+                                            title: const Text("新規書き込み"),
+                                            content: PostMakerView(thread.postMaker),
+                                        );
+                                    }
+                                );
                             },
                             icon: Icon(
                                 Icons.add,
