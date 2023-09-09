@@ -1,8 +1,9 @@
-import 'package:bbs_browser/configuration.dart';
 import 'package:flutter/material.dart';
-import 'bbs_thread_view.dart';
-import 'bbs_board_view.dart';
+import 'bbs_board.dart';
+import 'bbs_thread.dart';
 import 'bbs_user_data.dart';
+import 'configuration.dart';
+import 'app_view.dart';
 
 class MyApp extends StatelessWidget {
 
@@ -15,7 +16,7 @@ class MyApp extends StatelessWidget {
             title: "${Config.appName} ver${Config.appVersion}",
             theme: ThemeData.light(useMaterial3: true),
             darkTheme: ThemeData.dark(useMaterial3: true),
-            home: const MyHomePage(),
+            home: const AppContent()
         );
     }
 }
@@ -30,10 +31,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
-    final _sideView = const BoardView();
-    final _mainView = const ThreadView();
-
-    static final config = Config.getInstance();
     static final userData = UserData.getInstance();
 
     @override
@@ -89,18 +86,52 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 
     @override
     Widget build(BuildContext context) {
-        return Row(
-            children: <Widget>[
-                Expanded(
-                    flex: 1,
-                    child: _sideView,
-                ),
-                VerticalDivider(width: 1,color: config.color.foreground3,),
-                Expanded(
-                    flex: 3, 
-                    child: _mainView,
-                )
-            ]
-        );
+        // debugPrint(MediaQuery.of(context).size.width.toString());
+        // return const DualView(BoardView(null),ThreadView(null));
+        return 
+            MediaQuery.of(context).size.width > 600 ?
+                const DualView()
+            : //else
+                const SingleView(BoardView(null));
     }
+}
+
+class AppContent extends StatefulWidget{
+    
+    const AppContent({super.key});
+
+
+    @override
+    State<AppContent> createState(){
+        return _AppContentState();
+    }
+}
+class _AppContentState extends State<AppContent>{
+    static final UserData       userData        = UserData.getInstance();
+
+    // Board? board;
+    // Thread? thread;
+    // bool isDualView = false;
+    bool get isMobile => MediaQuery.of(context).size.width < 600;
+
+    @override
+    void initState(){
+        super.initState();
+
+        userData.load();
+    }
+
+    @override
+    Widget build(BuildContext context) {
+        // final Board? board = boardManager.currentBoard;
+        // final Thread? thread = threadManager.currentThread;
+
+        return 
+            const DualView();
+            // MediaQuery.of(context).size.width > 600 ?
+            //     DualView(BoardView(board), ThreadView(thread))
+            // : //else
+            //     SingleView(thread!=null?ThreadView(thread):BoardView(board));
+    }
+
 }

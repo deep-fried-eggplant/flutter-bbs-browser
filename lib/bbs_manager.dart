@@ -1,4 +1,6 @@
-import 'bbs_basedata.dart';
+import 'app_manager.dart';
+import 'bbs_board.dart';
+import 'bbs_thread.dart';
 
 
 typedef BoardDrawerFunc = void Function();
@@ -6,64 +8,68 @@ typedef ThreadDrawerFunc = void Function();
 
 
 class BoardManager{
+    static final AppManager appManager = AppManager.getInstance();
+
     static final _instance = BoardManager._internal();
 
-    // Board? _board = Board(BoardInfo("egg.5ch.net","software"));
-    Board? _board = Board(BoardInfo(
-        "https",
-        // "sannan.nl",
-        // "livegalileo",
-        // "防弾3G"
-        "egg.5ch.net",
-        "software",
-        "ソフトウェア"
-    ));
-    Board? get board => _board;
-
-    BoardDrawerFunc _drawer = () {};
+    final Set<Board> _activeList={};
 
     BoardManager._internal();
     factory BoardManager.getInstance() => _instance;
 
     void open(BoardInfo boardInfo){
-        _board = Board(boardInfo);
-        _drawer();
+        var iter = _activeList.where((element) => element.boardInfo == boardInfo);
+        if(iter.isEmpty){
+            var current = Board(boardInfo);
+            _activeList.add(current);
+            appManager.view?.openBoard(current);
+        }else{
+            appManager.view?.openBoard(iter.single);
+        }
     }
-    void close(){
-        _board = null;
-        _drawer();
-    }
-    void setDrawer(BoardDrawerFunc func){
-        _drawer = func;
-    }
-    void unsetDrawer(){
-        _drawer = () {};
+    void close(BoardInfo boardInfo){
+        var iter = _activeList.where((element) => element.boardInfo == boardInfo);
+        if(iter.isNotEmpty){
+            appManager.view?.closeBoard(iter.single);
+            _activeList.remove(iter.single);
+        }
     }
 }
 
 class ThreadManager{
+    static final AppManager appManager = AppManager.getInstance();
+
     static final _instance = ThreadManager._internal();
-
-    Thread? _thread;
-    Thread? get thread => _thread;
-
-    ThreadDrawerFunc _drawer = () {};
+    
+    final Set<Thread> _activeList = {};
 
     ThreadManager._internal();
     factory ThreadManager.getInstance() => _instance;
 
     void open(ThreadInfo threadInfo){
-        _thread = Thread(threadInfo);
-        _drawer();
+        var iter = _activeList.where((element) => element.threadInfo.equals(threadInfo));
+        
+        if(iter.isEmpty){
+            var current = Thread(threadInfo);
+            _activeList.add(current);
+            appManager.view?.openThread(current);
+        }else{
+            appManager.view?.openThread(iter.single);
+        }
     }
-    void close(){
-        _thread = null;
-        _drawer();
+    Future<bool> update(ThreadInfo threadInfo) async{
+        var iter = _activeList.where((element) => element.threadInfo.equals(threadInfo));
+        if(iter.isNotEmpty){
+            return iter.single.update();
+        }else{
+            return false;
+        }
     }
-    void setDrawer(ThreadDrawerFunc func){
-        _drawer = func;
-    }
-    void unsetDrawer(){
-        _drawer = () {};
+    void close(ThreadInfo threadInfo){
+        var iter = _activeList.where((element) => element.threadInfo.equals(threadInfo));
+        if(iter.isNotEmpty){
+            appManager.view?.closeThread(iter.single);
+            _activeList.remove(iter.single);
+        }
     }
 }

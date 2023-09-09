@@ -6,10 +6,6 @@ import 'bbs_cookie.dart';
 class UserData{
     static final UserData _instance = UserData._internal();
 
-    // late final String? _localPath;
-    // String get localPath => _localPath!;
-
-
     UserData._internal();
     factory UserData.getInstance()=>_instance;
 
@@ -71,25 +67,3 @@ class UserData{
     }
 }
 
-
-// Map<String,Cookie> _loadCookie(SharedPreferences pref){
-//     Map<String,Cookie> cookies = {};
-
-//     final hostList = pref.getStringList("user-data.cookie.host-list");
-//     if(hostList==null){
-//         return cookies;
-//     }
-//     for(final host in hostList){
-//         cookies[host] = Cookie.loadFromSharedPreferences(host, pref, "user-data.cookie");
-//         debugPrint(cookies[host].toString());
-//     }
-//     return cookies;
-// }
-
-// Future<void> _saveCookie(SharedPreferences pref,Map<String,Cookie> cookies)async{
-//     pref.setStringList("user-data.cookie.host-list", cookies.keys.toList());
-//     for(final value in cookies.values){
-//         debugPrint(value.toString());
-//         await value.saveToSharedPreferences(pref, "user-data.cookie");
-//     }
-// }

@@ -1,7 +1,103 @@
-import 'package:bbs_browser/bbs_user_data.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
-import 'bbs_basedata.dart';
+import 'package:http/http.dart' as http;
+import 'shift_jis.dart';
+import 'bbs_thread.dart';
+import 'bbs_user_data.dart';
+import 'bbs_cookie.dart';
+import 'configuration.dart';
+
+class PostMaker{
+    static final userData = UserData.getInstance();
+    
+    final ThreadInfo _threadInfo;
+    ThreadInfo get threadInfo => _threadInfo;
+    String name   ="";
+    String mailTo ="";
+    String message="";
+    final String _time;
+
+    final http.Client _client = http.Client();
+
+    final Cookie _cookie;
+    Cookie get cookie => _cookie;
+
+    final String _destUri;
+
+    late http.Response response;
+
+    PostMaker(this._threadInfo)
+    :   _cookie=userData.cookie(_threadInfo.boardInfo.server),
+        _time=(DateTime.now().millisecondsSinceEpoch~/1000).toString(),
+        _destUri=
+            "${_threadInfo.boardInfo.protocol}://${_threadInfo.boardInfo.server}/test/bbs.cgi"
+    {
+        debugPrint("PostMaker: Cookie : ${_cookie.toString()}");
+    }
+
+    Future<void> send() async{
+        final header = _makeHeader();
+        final body = await _makeBody();
+
+        debugPrint(header.toString());
+
+        response = await _client.post(Uri.parse(_destUri),
+            headers: header,
+            body: body,
+        );
+
+        if(response.headers.containsKey("set-cookie")){
+            final cookies=splitMultiSetCookie(response.headers["set-cookie"]!);
+            for(var elem in cookies){
+                _cookie.set(elem);
+            }
+            userData.save();
+        }else if(response.headers.containsKey("Set-Cookie")){
+            final cookies=splitMultiSetCookie(response.headers["Set-Cookie"]!);
+            for(var elem in cookies){
+                _cookie.set(elem);
+            }
+            userData.save();
+        }
+        debugPrint(_cookie.toString());
+    }
+
+    Map<String,String> _makeHeader(){
+        Map<String,String> header={};
+        header["Content-Type"] = "application/x-www-form-urlencoded; charset=shift_jis";
+        header["User-Agent"] = Config.getInstance().postUserAgent;
+        header["Referer"] = "https://${threadInfo.boardInfo.server}/test/read.cgi"
+                            "/${threadInfo.boardInfo.path}/${threadInfo.key}";
+        if(_cookie.isNotEmpty){
+            final list=<String>[];
+            _cookie.get(_destUri).forEach((key, value){
+                list.add("$key=$value");
+            });
+            header["Cookie"]=list.join("; ");
+            // debugPrint("Cookie to post: ${header}")
+        }
+        return header;
+    }
+    Future<List<int>> _makeBody() async{
+        String mapToStr(Map<String,String> map){
+            var buffer = StringBuffer();
+            for(var key in map.keys){
+                buffer.write("$key=${map[key]}&");
+            }
+            return buffer.toString();
+        }
+        var str=mapToStr({
+            "bbs":_threadInfo.boardInfo.path,
+            "key":_threadInfo.key,
+            "time":_time,
+            "FROM":name,
+            "mail":mailTo,
+            "MESSAGE":message,
+            "subject":"",
+            "feature":"confirmed"
+        });
+        return await utf8Tosjis(str);
+    }
+}
 
 class PostMakerView extends StatelessWidget{
     final PostMaker _postMaker;
@@ -136,67 +232,67 @@ class PostMakerView extends StatelessWidget{
             });
         });
         _debugPrintResponse(_postMaker.response);
-        
     }
 }
 
-Future<void> _sendAndShowResult(
-    BuildContext context,NavigatorState makerNavigator,PostMaker postMaker
-)async{
-    showDialog(
-        barrierDismissible: false,
-        context: context,
-        builder: (buildContext){
-            return const AlertDialog(
-                content: Text("送信中..."),
-            );
-        }
-    );
-    await postMaker.send().then((value)async{
-        Navigator.of(context).pop();
-        debugPrint(postMaker.cookie.toString());
-        final futBody=sjisToUtf8(postMaker.response.bodyBytes);
-        futBody.then((body){
-            if(!body.contains("書き込み確認")){
-                makerNavigator.pop();
-                return;
-            }
-            showDialog(
-                context: context,
-                builder: (context1){
-                    return AlertDialog(
-                        content: SingleChildScrollView(
-                            child: _htmlDialog(body),
-                        ),
-                        actions: [
-                            TextButton(
-                                child: const Text("書き込む"),
-                                onPressed: ()async{
-                                    Navigator.of(context1).pop();
-                                    await _sendAndShowResult(
-                                        context1,
-                                        makerNavigator,
-                                        postMaker
-                                    );
-                                },
-                            )
-                        ],
-                    );
-                }
-            );
-        });
-    });
-}
 
-Future<void> _debugPrintResponse(Response response) async{
+// Future<void> _sendAndShowResult(
+//     BuildContext context,NavigatorState makerNavigator,PostMaker postMaker
+// )async{
+//     showDialog(
+//         barrierDismissible: false,
+//         context: context,
+//         builder: (buildContext){
+//             return const AlertDialog(
+//                 content: Text("送信中..."),
+//             );
+//         }
+//     );
+//     await postMaker.send().then((value)async{
+//         Navigator.of(context).pop();
+//         debugPrint(postMaker.cookie.toString());
+//         final futBody=sjisToUtf8(postMaker.response.bodyBytes);
+//         futBody.then((body){
+//             if(!body.contains("書き込み確認")){
+//                 makerNavigator.pop();
+//                 return;
+//             }
+//             showDialog(
+//                 context: context,
+//                 builder: (context1){
+//                     return AlertDialog(
+//                         content: SingleChildScrollView(
+//                             child: _htmlDialog(body),
+//                         ),
+//                         actions: [
+//                             TextButton(
+//                                 child: const Text("書き込む"),
+//                                 onPressed: ()async{
+//                                     Navigator.of(context1).pop();
+//                                     await _sendAndShowResult(
+//                                         context1,
+//                                         makerNavigator,
+//                                         postMaker
+//                                     );
+//                                 },
+//                             )
+//                         ],
+//                     );
+//                 }
+//             );
+//         });
+//     });
+// }
+
+Future<void> _debugPrintResponse(http.Response response) async{
     final futHtml=sjisToUtf8(response.bodyBytes);
-    // debugPrint("[STATUS]");
-    // debugPrint(response.statusCode.toString());
-    // debugPrint("\n[HEADERS]");
-    // for(final key in response.headers.keys){
-    //     final value=response.headers[key];
-    //     debugPrint("$key\t: $value");
-    // }
+    debugPrint("[STATUS]");
+    debugPrint(response.statusCode.toString());
+    debugPrint("\n[HEADERS]");
+    for(final key in response.headers.keys){
+        final value=response.headers[key];
+        debugPrint("$key\t: $value");
+    }
     debugPrint("\n[BODY]");
     debugPrint(await futHtml);
 }

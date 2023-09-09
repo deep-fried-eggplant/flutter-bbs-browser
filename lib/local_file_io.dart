@@ -1,3 +1,4 @@
+import 'package:bbs_browser/configuration.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -13,9 +14,17 @@ class LocalFileIO{
 
     LocalFileIO._internal();
     static Future<LocalFileIO> getInstance()async{
-        _instance._root ??= (await getApplicationDocumentsDirectory()).path;
+        _instance._root ??= p.join(
+            (await getApplicationDocumentsDirectory()).path,
+            Config.appName
+        );
         
         return _instance;
+    }
+
+    Future<bool> exists(String path) async{
+        final File file = File(p.join(root,path));
+        return file.exists();
     }
 
     Future<String?> read(String path)async{
