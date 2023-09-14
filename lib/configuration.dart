@@ -10,7 +10,7 @@ class Config{
     factory Config.getInstance() => _instance;
 
 
-    ColorConfig color   = ColorConfig.light;
+    ColorConfig color   = ColorConfig.dark;
     
     final String getUserAgent = "Monazilla/1.0.0 $appName/$appVersion";
     final String postUserAgent= "Monazilla/1.0.0 $appName/$appVersion";

@@ -92,7 +92,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
             MediaQuery.of(context).size.width > 600 ?
                 const DualView()
             : //else
-                const SingleView(BoardView(null));
+                const SingleView();
     }
 }
 
@@ -127,7 +127,8 @@ class _AppContentState extends State<AppContent>{
         // final Thread? thread = threadManager.currentThread;
 
         return 
-            const DualView();
+            // const DualView();
+            const SingleView();
             // MediaQuery.of(context).size.width > 600 ?
             //     DualView(BoardView(board), ThreadView(thread))
             // : //else

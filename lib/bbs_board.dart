@@ -218,6 +218,10 @@ class _BoardViewBody extends StatelessWidget{
 
     @override
     Widget build(BuildContext context){
+        if(_board==null){
+            return Container(color: config.color.background,);
+        }
+
         String dateTimeToString(DateTime dt){
             String w2(int val){
                 return val.toString().padLeft(2,"0");
@@ -230,11 +234,7 @@ class _BoardViewBody extends StatelessWidget{
         final TextStyle titleTextStyle = TextStyle(color: config.color.foreground);
         final TextStyle titleTextStyle2 = TextStyle(color: config.color.foreground3);
 
-        if(_board==null){
-            return const SizedBox();
-        }
-
-        var list = List<Widget>.empty(growable: true);
+        final list = List<Widget>.empty(growable: true);
         for(var item in _board!.threadInfoList){
             final RegExp subTitleRegExp = RegExp(r" \[([^\]\]]*)★\]$");
             final RegExpMatch? match = subTitleRegExp.firstMatch(item.title);

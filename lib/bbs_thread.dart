@@ -173,9 +173,6 @@ class _ThreadViewState extends State<ThreadView>{
             update();
         }
 
-        if(thread==null){
-            return Container(color: config.color.background);
-        }
 
         return Scaffold(
             appBar: PreferredSize(
@@ -183,7 +180,7 @@ class _ThreadViewState extends State<ThreadView>{
                 child: AppBar(
                     backgroundColor: config.color.primary,
                     title: Text(
-                        thread.threadInfo.title.replaceAll("\n", " "),
+                        thread==null?"":thread.threadInfo.title.replaceAll("\n", " "),
                         style: TextStyle(
                             color: config.color.onPrimary
                         ),    
@@ -191,7 +188,9 @@ class _ThreadViewState extends State<ThreadView>{
                     actions: [
                         IconButton(
                             onPressed: (){
-                                ThreadManager.getInstance().close(thread.threadInfo);
+                                if(thread!=null){
+                                    ThreadManager.getInstance().close(thread.threadInfo);
+                                }
                             },
                             icon: Icon(Icons.close,color: config.color.onPrimary,)
                         )
@@ -200,6 +199,7 @@ class _ThreadViewState extends State<ThreadView>{
             ),
             body: Center(
                 child: SizedBox(height: double.infinity, child: ThreadViewBody(thread))
+                // child: Container(height: double.infinity,color: config.color.background,child: ThreadViewBody(thread),),
             ),
             bottomNavigationBar: BottomAppBar(
                 color: config.color.primary,
@@ -211,15 +211,17 @@ class _ThreadViewState extends State<ThreadView>{
                         const Expanded(child: SizedBox()),
                         IconButton(
                             onPressed: (){
-                                showDialog(
-                                    context: context,
-                                    builder: (buildContext){
-                                        return AlertDialog(
-                                            title: const Text("新規書き込み"),
-                                            content: PostMakerView(thread.postMaker),
-                                        );
-                                    }
-                                );
+                                if(thread!=null){
+                                    showDialog(
+                                        context: context,
+                                        builder: (buildContext){
+                                            return AlertDialog(
+                                                title: const Text("新規書き込み"),
+                                                content: PostMakerView(thread.postMaker),
+                                            );
+                                        }
+                                    );
+                                }
                             },
                             icon: Icon(Icons.create, color: config.color.onPrimary)
                         ),
@@ -248,15 +250,19 @@ class _ThreadViewState extends State<ThreadView>{
 class ThreadViewBody extends StatelessWidget{
     static final Config config = Config.getInstance();
 
-    final Thread thread;
+    final Thread? _thread;
 
-    const ThreadViewBody(this.thread,{super.key});
+    const ThreadViewBody(this._thread,{super.key});
 
     @override
     Widget build(BuildContext context){
+        if(_thread == null){
+            return Container(color: config.color.background,);
+        }
+
         final list = List<Widget>.empty(growable: true);
         final bodyTextStyle2 = TextStyle(color: config.color.foreground2);
-        for(final item in thread.postList){
+        for(final item in _thread!.postList){
             list.add(
                 Container(
                     width: double.infinity,

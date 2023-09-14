@@ -16,9 +16,10 @@ abstract class AppView{
 class SingleView extends StatefulWidget implements AppView{
     static final _SingleViewManager _viewManager = _SingleViewManager.getInstance();
 
-    final Widget initialContent;
+    final BoardTabView _boardTabView=const BoardTabView();
+    final ThreadTabView _threadTabView=const ThreadTabView();
 
-    const SingleView(this.initialContent,{super.key});
+    const SingleView({super.key});
 
     @override
     State<SingleView> createState(){
@@ -26,105 +27,118 @@ class SingleView extends StatefulWidget implements AppView{
     }
 
     @override
-    void openBoard(Board info){
-        _viewManager.state?.openBoardImpl(info);
+    void openBoard(Board board){
+        _viewManager.state?.openBoard(board);
     }
     @override
     void closeBoard(Board board){
-
+        _viewManager.state?.closeBoard(board);
     }
     
     @override
-    void openThread(Thread info){
-        _viewManager.state?.openThreadImpl(info);
+    void openThread(Thread thread){
+        _viewManager.state?.openThread(thread);
     }
     @override
     void closeThread(Thread thread){
-
+        _viewManager.state?.closeThread(thread);
     }
 }
 class _SingleViewState extends State<SingleView>{
+    static final Config config = Config.getInstance();
+
     static final _SingleViewManager _viewManager = _SingleViewManager.getInstance();
     static final AppManager appManager = AppManager.getInstance();
 
-    late Widget content;
+    // late Widget content;
+    late BoardTabView _boardTabView;
+    late ThreadTabView _threadTabView;
+
+    late List<Widget> _contentList;
+    int _contentIndex =0;
+
+    static const _contentIndexToBoard = 0;
+    static const _contentIndexToThread = 1;
 
     @override
     void initState(){
-        debugPrint("view initState");
-
         super.initState();
 
-        content = widget.initialContent;
+        // _boardTabView = BoardTabView(key: widget.key,);
+        // _threadTabView = ThreadTabView(key: widget.key,);
+        _boardTabView = widget._boardTabView;
+        _threadTabView = widget._threadTabView;
+        _contentList = [_boardTabView,_threadTabView];
 
         register();
+
+        debugPrint("singleView initState");
     }
 
     void register(){
-        debugPrint("view register");
-
         _viewManager.set(this);
         appManager.set(widget);
     }
 
     @override
-    void deactivate(){
-        debugPrint("view deactivate");
-
-        super.deactivate();
-    }
-
-    @override
-    void dispose(){
-        debugPrint("view dispose");
-
-        super.dispose();
-    }
-
-    @override
     Widget build(BuildContext context){
-        debugPrint("view build");
+        debugPrint("singleView build");
 
-        return content;
+        return Scaffold(
+            key: widget.key,
+            body: _contentList.elementAt(_contentIndex),
+            bottomNavigationBar: BottomNavigationBar(
+                backgroundColor: config.color.primary,
+                items: <BottomNavigationBarItem>[
+                    BottomNavigationBarItem(
+                        icon: Icon(Icons.list, color: config.color.onPrimary,),
+                        label: "Board"
+                    ),
+                    BottomNavigationBarItem(
+                        icon: Icon(Icons.list, color: config.color.onPrimary,),
+                        label: "Thread"
+                    )
+                ],
+                currentIndex: _contentIndex,
+                onTap: (index){
+                    setState(() {
+                        _contentIndex = index;
+                    });
+                },
+            ),
+        );
     }
 
-    void setContent(Widget newContent){
+    void openBoard(Board board){
+        
         setState(() {
-            content = newContent;
+            _contentIndex = _contentIndexToBoard;
+        });
+        setState(() {
+            _boardTabView.open(board);
         });
     }
 
-    void openBoardImpl(Board board){
-        if(content is BoardView){
-            setContent(BoardView(board));
-        }else{
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context1) {
-                    // return SingleView(BoardView(Board(info)), key: widget.key);
-                    return AppContent(
-                        key: widget.key,
-                    );
-                })
-            );
-        }
+    void closeBoard(Board board){
+        setState(() {
+            _boardTabView.close(board);
+        });
     }
 
-    void openThreadImpl(Thread thread){
-        if(content is ThreadView){
-            setContent(ThreadView(thread));
-        }else{
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) {
-                    // return SingleView(ThreadView(Thread(info)), key: widget.key);
-                    return AppContent(
-                        key: widget.key,
-                        // initialBoard: ,
-                        // initialThread: Thread(info),
-                    );
-                })
-            ).then((value) => register());
-        }
+    void openThread(Thread thread){
+        setState(() {
+            _contentIndex = _contentIndexToThread;
+        });
+        setState(() {
+            _threadTabView.open(thread);
+        });
     }
+    void closeThread(Thread thread){
+        setState(() {
+            _threadTabView.close(thread);
+        });
+    }
+
 }
 class _SingleViewManager{
     static final _SingleViewManager _instance = _SingleViewManager._internal();
@@ -156,13 +170,7 @@ class DualView extends StatefulWidget implements AppView{
 
     @override
     void openBoard(Board board){
-        if(_viewManager.state == null){
-            return;
-        }
-        final state = _viewManager.state!;
-
-        // state.setSideContent(BoardView(board));
-        state.setSideContent(board);
+        _viewManager.state?.openBoard(board);
     }
 
     @override
@@ -172,13 +180,7 @@ class DualView extends StatefulWidget implements AppView{
 
     @override
     void openThread(Thread thread){
-        if(_viewManager.state == null){
-            return;
-        }
-        final state = _viewManager.state!;
-
-        // state.setMainContent(ThreadView(thread));
-        state.setMainContent(thread);
+        _viewManager.state?.openThread(thread);
     }
 
     @override
@@ -190,17 +192,15 @@ class _DualViewState extends State<DualView>{
     static final _DualViewManager _viewManager = _DualViewManager.getInstance();
     static final AppManager appManager = AppManager.getInstance();
 
-    late ThreadTabView mainContent;
-    late BoardTabView sideContent;
-    // late TabView mainContent;
-    // late TabView sideContent;
+    late ThreadTabView _threadTabView;
+    late BoardTabView _boardTabView;
 
     @override
     void initState(){
         super.initState();
 
-        mainContent = ThreadTabView(key: widget.key,);
-        sideContent = BoardTabView(key: widget.key,);
+        _threadTabView = ThreadTabView(key: widget.key,);
+        _boardTabView = BoardTabView(key: widget.key,);
 
         register();
 
@@ -223,7 +223,7 @@ class _DualViewState extends State<DualView>{
             children: [
                 Expanded(
                     flex: sideWidth,
-                    child: sideContent,
+                    child: _boardTabView,
                 ),
                 VerticalDivider(
                     width: divideWidth.toDouble(),
@@ -231,33 +231,30 @@ class _DualViewState extends State<DualView>{
                 ),
                 Expanded(
                     flex: mainWidth,
-                    child: mainContent,
+                    child: _threadTabView,
                 )
             ],
         );
     }
 
-    void setMainContent(Thread thread){
+    void openThread(Thread thread){
         setState(() {
-            // mainContent.open(TabContent("", content));
-            mainContent.open(thread);
+            _threadTabView.open(thread);
         });
     }
-    void setSideContent(Board board){
+    void openBoard(Board board){
         setState(() {
-            // sideContent = content;
-            // sideContent.open(TabContent("board", content));
-            sideContent.open(board);
+            _boardTabView.open(board);
         });
     }
     void closeThread(Thread thread){
         setState(() {
-            mainContent.close(thread);
+            _threadTabView.close(thread);
         });
     }
     void closeBoard(Board board){
         setState(() {
-            sideContent.close(board);
+            _boardTabView.close(board);
         });
     }
 }
@@ -298,6 +295,7 @@ class BoardTabView extends StatefulWidget{
 
 class _BoardTabViewState extends State<BoardTabView> with TickerProviderStateMixin{
     static final Config config = Config.getInstance();
+    static final _BoardTabViewManager manager = _BoardTabViewManager.getInstance();
 
     final List<BoardView> _contentList = [];
 
@@ -314,13 +312,15 @@ class _BoardTabViewState extends State<BoardTabView> with TickerProviderStateMix
 
         _tabController = TabController(length: _contentList.length, vsync: this);
 
-        _BoardTabViewManager.getInstance().initialize(this);
+        manager.set(this);
     }
 
     @override
     void dispose(){
         _tabController.dispose();
         super.dispose();
+
+        manager.unset();
     }
 
     @override
@@ -404,8 +404,11 @@ class _BoardTabViewManager{
     _BoardTabViewManager._internal();
     factory _BoardTabViewManager.getInstance() => _instance;
 
-    void initialize(_BoardTabViewState viewState){
+    void set(_BoardTabViewState viewState){
         _state = viewState;
+    }
+    void unset(){
+        _state = null;
     }
 }
 
@@ -430,6 +433,7 @@ class ThreadTabView extends StatefulWidget{
 
 class _ThreadTabViewState extends State<ThreadTabView> with TickerProviderStateMixin{
     static final Config config = Config.getInstance();
+    static final _ThreadTabViewManager manager = _ThreadTabViewManager.getInstance();
     
     final List<ThreadView> _contentList = [];
 
@@ -446,7 +450,7 @@ class _ThreadTabViewState extends State<ThreadTabView> with TickerProviderStateM
 
         _tabController = TabController(length: _contentList.length, vsync: this);
 
-        _ThreadTabViewManager.getInstance().initialize(this);
+        manager.set(this);
 
         debugPrint("tabViewState initState");
     }
@@ -455,6 +459,8 @@ class _ThreadTabViewState extends State<ThreadTabView> with TickerProviderStateM
     void dispose(){
         _tabController.dispose();
         super.dispose();
+
+        manager.unset();
     }
 
     @override
@@ -538,8 +544,11 @@ class _ThreadTabViewManager{
     _ThreadTabViewState? _state;
     _ThreadTabViewState? get state => _state;
 
-    void initialize(_ThreadTabViewState viewState){
+    void set(_ThreadTabViewState viewState){
         _state = viewState;
+    }
+    void unset(){
+        _state = null;
     }
 }
 

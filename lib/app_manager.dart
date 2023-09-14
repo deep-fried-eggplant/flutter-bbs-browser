@@ -20,12 +20,5 @@ class AppManager{
     void unset(){
         _view = null;
     }
-
-    // void setDrawer(AppContentDrawerFunc func){
-    //     _drawer = func;
-    // }
-    // void unsetDrawer(){
-    //     _drawer = (){};
-    // }
 }
 
