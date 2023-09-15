@@ -20,7 +20,7 @@ class Board{
         final String uri=
             "${boardInfo.protocol}://${boardInfo.server}/${boardInfo.path}/subject.txt";
         final response = await http.get(Uri.parse(uri));
-        debugPrint("$uri -> ${response.statusCode.toString()}");
+        debugPrint("Board update $uri -> ${response.statusCode.toString()}");
         if(response.statusCode==200){
             threadInfoList.clear();
             return _parseSubjextTxt(await sjisToUtf8(response.bodyBytes));
@@ -58,18 +58,18 @@ class Board{
                 line.substring(titleEnd+2,line.indexOf(")",titleEnd+2))
             );
             if(length == null){
-                debugPrint(line);
+                debugPrint("Board parseSubjectTxt failed to get length at $line");
                 return false;
             }
             var epoch=int.tryParse(key);
             if(epoch==null){
-                debugPrint(line);
+                debugPrint("Board parseSubjectTxt failed to get timestamp at $line");
                 return false;
             }
             DateTime createdAt=DateTime.fromMillisecondsSinceEpoch(epoch*1000);
             threadInfoList.add(ThreadInfo(boardInfo, key, title, createdAt, length));
         }
-        debugPrint(threadInfoList.length.toString());
+        debugPrint("Board parseSubjectTxt -> length:${threadInfoList.length}");
         return true;
     }
 }
@@ -110,16 +110,16 @@ class _BoardViewState extends State<BoardView>{
 
     @override
     void initState(){
+        debugPrint("BoardViewState initState widget:${widget.hashCode} this:$hashCode");
         super.initState();
-        debugPrint("boardViewState initState widget:${widget.hashCode} this:$hashCode");
 
         _reloadFlag = _loadedViewList.add(widget);
     }
 
     @override
     void didUpdateWidget(BoardView oldWidget){
+        debugPrint("BoardViewState didUpdateWidget oldWidget:${oldWidget.hashCode}");
         super.didUpdateWidget(oldWidget);
-        debugPrint("boardViewState didUpdateWidget oldWidget:${oldWidget.hashCode}");
 
         _reloadFlag = (_loadedViewList..remove(oldWidget)).add(widget);
     }
@@ -129,7 +129,7 @@ class _BoardViewState extends State<BoardView>{
         final TextStyle onPrimaryTextStyle = TextStyle(color: config.color.onPrimary);
         Board? board = widget.board;
 
-        debugPrint("threadView build widget:${widget.hashCode} name:${board?.boardInfo.name}");
+        debugPrint("BoardViewState build widget:${widget.hashCode} name:${board?.boardInfo.name}");
 
         if(_reloadFlag){
             _reloadFlag=false;
@@ -158,7 +158,7 @@ class _BoardViewState extends State<BoardView>{
                 ),
             ),
             body: Center(
-                child: _BoardViewBody(board,key: widget.key),
+                child: SizedBox(height: double.infinity,child: _BoardViewBody(board,key: widget.key,),),
             ),
             bottomNavigationBar: BottomAppBar(
                 color: config.color.primary,
@@ -184,7 +184,7 @@ class _BoardViewState extends State<BoardView>{
                         const Expanded(child: SizedBox(),),
                         IconButton(
                             onPressed: (){
-                                debugPrint("plus");
+                                // debugPrint("plus");
                             },
                             icon: Icon(Icons.create,color: config.color.onPrimary),
                         ),
@@ -203,7 +203,7 @@ class _BoardViewState extends State<BoardView>{
             if(value){
                 setState((){});
             }else{
-                debugPrint("BoardViewState update failed");
+                // do nothing
             }
         });
     }
@@ -241,10 +241,8 @@ class _BoardViewBody extends StatelessWidget{
             late final String mainTitle;
             late final String subTitle;
             if(match!=null){
-                // final int matchLen = match[0]!.length;
                 mainTitle = item.title.substring(0,item.title.length-match[0]!.length);
                 subTitle = match.groupCount>=1 ? match[1]! : "";
-                // subTitle = match[0]!;
             }else{
                 mainTitle = item.title;
                 subTitle = "";
@@ -253,7 +251,6 @@ class _BoardViewBody extends StatelessWidget{
                 InkWell(
                     onTap: (){
                         ThreadManager.getInstance().open(item);
-                        // AppManager.getInstance().view?.openThread(item);
                     },
                     child: Container(
                         width: double.infinity,

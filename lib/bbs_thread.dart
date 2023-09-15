@@ -22,7 +22,7 @@ class Thread{
 
     Future<bool> update() async{
         final String uri=
-            "https://${threadInfo.boardInfo.server}"
+            "${threadInfo.boardInfo.protocol}://${threadInfo.boardInfo.server}"
             "/${threadInfo.boardInfo.path}"
             "/dat"
             "/${threadInfo.key}.dat";
@@ -149,16 +149,16 @@ class _ThreadViewState extends State<ThreadView>{
 
     @override
     void initState(){
+        debugPrint("ThreadViewState initState widget:${widget.hashCode} this:$hashCode");
         super.initState();
-        debugPrint("threadViewState initState widget:${widget.hashCode} this:$hashCode");
 
         _reloadFlag = _loadedViewList.add(widget);
     }
 
     @override
     void didUpdateWidget(ThreadView oldWidget){
+        debugPrint("ThreadViewState didUpdateWidget oldWidget:${oldWidget.hashCode}");
         super.didUpdateWidget(oldWidget);
-        debugPrint("threadViewState didUpdateWidget oldWidget:${oldWidget.hashCode}");
         
         _reloadFlag = (_loadedViewList..remove(oldWidget)).add(widget);
     }
@@ -166,7 +166,7 @@ class _ThreadViewState extends State<ThreadView>{
     @override
     Widget build(BuildContext context){
         final thread = widget.thread;
-        debugPrint("threadView build widget:${widget.hashCode} key:${thread?.threadInfo.key}");
+        debugPrint("ThreadViewState build widget:${widget.hashCode} key:${thread?.threadInfo.key}");
 
         if(_reloadFlag){
             _reloadFlag = false;
@@ -198,8 +198,7 @@ class _ThreadViewState extends State<ThreadView>{
                 ),
             ),
             body: Center(
-                child: SizedBox(height: double.infinity, child: ThreadViewBody(thread))
-                // child: Container(height: double.infinity,color: config.color.background,child: ThreadViewBody(thread),),
+                child: SizedBox(height: double.infinity, child: ThreadViewBody(thread,key: widget.key,))
             ),
             bottomNavigationBar: BottomAppBar(
                 color: config.color.primary,
@@ -241,7 +240,7 @@ class _ThreadViewState extends State<ThreadView>{
             if(value){
                 setState((){});
             }else{
-                debugPrint("ThreadViewState update failed");
+                // debugPrint("ThreadViewState update failed");
             }
         });
     }

@@ -21,7 +21,7 @@ class UserData{
     Future<void> load()async{
         final LocalFileIO fileIO = await LocalFileIO.getInstance();
         await _loadCookie(fileIO);
-        debugPrint(fileIO.root);
+        // debugPrint(fileIO.root);
     }
 
     Future<void> save()async{

@@ -205,15 +205,15 @@ Future<Widget> _build()async{
 
     if(bbs5ch != null){
         list.add(bbs5ch);
-        debugPrint("buildBoardListView loadBBS 5ch ok");
+        debugPrint("BBS load 5ch ok");
     }
     if(bbssannan != null){
         list.add(bbssannan);
-        debugPrint("buildBoardListView loadBBS sannan ok");
+        debugPrint("BBS load sannan ok");
     }
     if(other != null){
         list.add(other);
-        debugPrint("buildBoardListView loadBBS other ok");
+        debugPrint("BBS load other ok");
     }
     return _BoardListViewContent(list);
 }

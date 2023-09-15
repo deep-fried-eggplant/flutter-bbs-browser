@@ -12,8 +12,6 @@ class AppManager{
     AppView? _view;
     AppView? get view => _view;
 
-    // AppContentDrawerFunc _drawer=(){};
-
     void set(AppView appView){
         _view = appView;
     }

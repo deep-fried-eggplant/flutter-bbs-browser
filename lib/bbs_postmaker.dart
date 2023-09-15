@@ -31,14 +31,14 @@ class PostMaker{
         _destUri=
             "${_threadInfo.boardInfo.protocol}://${_threadInfo.boardInfo.server}/test/bbs.cgi"
     {
-        debugPrint("PostMaker: Cookie : ${_cookie.toString()}");
+        debugPrint("PostMaker new cookie:${_cookie.toString()}");
     }
 
     Future<void> send() async{
         final header = _makeHeader();
         final body = await _makeBody();
 
-        debugPrint(header.toString());
+        debugPrint("PostMaker send header:$header");
 
         response = await _client.post(Uri.parse(_destUri),
             headers: header,
@@ -58,22 +58,22 @@ class PostMaker{
             }
             userData.save();
         }
-        debugPrint(_cookie.toString());
+        debugPrint("PostMaker send -> cookie:${_cookie.toString()}");
     }
 
     Map<String,String> _makeHeader(){
         Map<String,String> header={};
         header["Content-Type"] = "application/x-www-form-urlencoded; charset=shift_jis";
         header["User-Agent"] = Config.getInstance().postUserAgent;
-        header["Referer"] = "https://${threadInfo.boardInfo.server}/test/read.cgi"
-                            "/${threadInfo.boardInfo.path}/${threadInfo.key}";
+        header["Referer"] = 
+            "${threadInfo.boardInfo.protocol}://${threadInfo.boardInfo.server}/test/read.cgi"
+            "/${threadInfo.boardInfo.path}/${threadInfo.key}";
         if(_cookie.isNotEmpty){
             final list=<String>[];
             _cookie.get(_destUri).forEach((key, value){
                 list.add("$key=$value");
             });
             header["Cookie"]=list.join("; ");
-            // debugPrint("Cookie to post: ${header}")
         }
         return header;
     }
@@ -191,7 +191,6 @@ class PostMakerView extends StatelessWidget{
         );
         await _postMaker.send().then((value)async{
             Navigator.of(context).pop();
-            debugPrint(_postMaker.cookie.toString());
             final futBody=sjisToUtf8(_postMaker.response.bodyBytes);
             futBody.then((body){
                 if(!body.contains("書き込み確認")){
@@ -202,7 +201,6 @@ class PostMakerView extends StatelessWidget{
                     context: context,
                     builder: (buildContext){
                         return AlertDialog(
-                            // content:SelectableText(body.replaceAll("<br>", "\n")),
                             content: SingleChildScrollView(
                                 child: _htmlDialog(body),
                             ),
