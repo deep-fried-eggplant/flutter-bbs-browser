@@ -21,13 +21,12 @@ class BBS{
         final LocalFileIO fileIO = await LocalFileIO.getInstance();
         final String path = p.join("bbsmenu","$name.json");
 
-        // final Map<String,Object> json = {};
         final List<Map<String,Object>> menuList = [];
         for(final category in menu){
             final List<Map<String,Object>> contentList = [];
             for(final info in category.boardInfoList){
                 contentList.add({
-                    "url":"${info.protocol}://${info.server}/${info.path}",
+                    "url":"${info.scheme}//${info.server}/${info.path}",
                     "category_name":category.name,
                     "board_name":info.name,
                     "directory_name":info.path
@@ -154,12 +153,12 @@ class BBS{
     }
 }
 BoardInfo _urlToBoardInfo(String name,String url){
-    final String protocol = url.substring(0,url.indexOf("://"));
-    final int serverEnd = url.indexOf("/",protocol.length+"://".length);
-    final String server = url.substring(protocol.length+"://".length,serverEnd);
+    final String scheme = url.substring(0,url.indexOf("//"));
+    final int serverEnd = url.indexOf("/",scheme.length+"//".length);
+    final String server = url.substring(scheme.length+"//".length,serverEnd);
     final int pathEnd = url.indexOf("/",serverEnd+1);
     final String path = url.substring(serverEnd+1, pathEnd<0?url.length:pathEnd);
-    return BoardInfo(protocol,server,path,name);
+    return BoardInfo(scheme,server,path,name);
 }
 
 class BBSCategory{

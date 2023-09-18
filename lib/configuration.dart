@@ -16,6 +16,16 @@ class Config{
     final String postUserAgent= "Monazilla/1.0.0 $appName/$appVersion";
 }
 
+class _Color extends Color{
+    const _Color(int colorCode):
+        super.fromARGB(
+            255,
+            (colorCode>>16)&0xff,
+            (colorCode>> 8)&0xff,
+             colorCode     &0xff
+        );
+}
+
 class ColorConfig{
     final Color primary;
     final Color onPrimary;
@@ -34,19 +44,25 @@ class ColorConfig{
     );
 
     static const ColorConfig light = ColorConfig(
-        Colors.blueGrey,
-        Colors.white,
-        Colors.white,
-        Colors.black,
-        Colors.black87,
-        Colors.black54
+        // Colors.blueGrey,
+        _Color(0x5f7f8f),
+        // Colors.white,
+        _Color(0xffffff),
+        // Colors.white,
+        _Color(0xffffff),
+        // Colors.black,
+        _Color(0x0f0f0f),
+        // Colors.black87,
+        _Color(0x3f3f3f),
+        // Colors.black54
+        _Color(0x6f6f6f)
     );
     static const ColorConfig dark = ColorConfig(
-        Colors.black54,
-        Colors.white,
-        Colors.black87,
-        Colors.white,
-        Colors.white70,
-        Colors.white60
+        _Color(0x7f7f7f),
+        _Color(0xffffff),
+        _Color(0x1f1f1f),
+        _Color(0xefefef),
+        _Color(0xbfbfbf),
+        _Color(0x8f8f8f)
     );
 }

@@ -29,7 +29,7 @@ class PostMaker{
     :   _cookie=userData.cookie(_threadInfo.boardInfo.server),
         _time=(DateTime.now().millisecondsSinceEpoch~/1000).toString(),
         _destUri=
-            "${_threadInfo.boardInfo.protocol}://${_threadInfo.boardInfo.server}/test/bbs.cgi"
+            "${_threadInfo.boardInfo.scheme}//${_threadInfo.boardInfo.server}/test/bbs.cgi"
     {
         debugPrint("PostMaker new cookie:${_cookie.toString()}");
     }
@@ -66,7 +66,7 @@ class PostMaker{
         header["Content-Type"] = "application/x-www-form-urlencoded; charset=shift_jis";
         header["User-Agent"] = Config.getInstance().postUserAgent;
         header["Referer"] = 
-            "${threadInfo.boardInfo.protocol}://${threadInfo.boardInfo.server}/test/read.cgi"
+            "${threadInfo.boardInfo.scheme}//${threadInfo.boardInfo.server}/test/read.cgi"
             "/${threadInfo.boardInfo.path}/${threadInfo.key}";
         if(_cookie.isNotEmpty){
             final list=<String>[];

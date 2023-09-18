@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'local_file_io.dart';
 import 'bbs_cookie.dart';
@@ -21,7 +20,6 @@ class UserData{
     Future<void> load()async{
         final LocalFileIO fileIO = await LocalFileIO.getInstance();
         await _loadCookie(fileIO);
-        // debugPrint(fileIO.root);
     }
 
     Future<void> save()async{

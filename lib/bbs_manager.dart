@@ -3,11 +3,6 @@ import 'app_manager.dart';
 import 'bbs_board.dart';
 import 'bbs_thread.dart';
 
-
-typedef BoardDrawerFunc = void Function();
-typedef ThreadDrawerFunc = void Function();
-
-
 class BoardManager{
     static final AppManager appManager = AppManager.getInstance();
 

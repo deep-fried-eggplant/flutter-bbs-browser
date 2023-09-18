@@ -66,7 +66,7 @@ class _SingleViewState extends State<SingleView>{
 
         register();
 
-        debugPrint("SingleViewState initState");
+        debugPrint("SingleViewState initState opacity:${config.color.primary.opacity}");
     }
 
     @override
@@ -215,7 +215,6 @@ class _DualViewState extends State<DualView>{
     @override
     void didUpdateWidget(DualView oldWidget){
         super.didUpdateWidget(oldWidget);
-        // debugPrint("DualViewState didUpdateWidget");
         register();
     }
 
@@ -364,6 +363,7 @@ class _BoardTabViewState extends State<BoardTabView> with TickerProviderStateMix
     @override
     Widget build(BuildContext context){
         return Scaffold(
+            backgroundColor: config.color.background,
             appBar: PreferredSize( 
                 preferredSize: const Size.fromHeight(50),
                 child: AppBar(
@@ -527,6 +527,7 @@ class _ThreadTabViewState extends State<ThreadTabView> with TickerProviderStateM
     @override
     Widget build(BuildContext context){
         return Scaffold(
+            backgroundColor: config.color.background,
             appBar: PreferredSize(
                 preferredSize:const Size.fromHeight(50),
                 child:AppBar(

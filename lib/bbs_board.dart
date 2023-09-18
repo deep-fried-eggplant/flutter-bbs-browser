@@ -6,7 +6,6 @@ import 'bbs_boardlist.dart';
 import 'bbs_thread.dart';
 import 'bbs_manager.dart';
 import 'configuration.dart';
-// import 'app_manager.dart';
 
 
 class Board{
@@ -18,7 +17,7 @@ class Board{
 
     Future<bool> update() async{
         final String uri=
-            "${boardInfo.protocol}://${boardInfo.server}/${boardInfo.path}/subject.txt";
+            "${boardInfo.scheme}//${boardInfo.server}/${boardInfo.path}/subject.txt";
         final response = await http.get(Uri.parse(uri));
         debugPrint("Board update $uri -> ${response.statusCode.toString()}");
         if(response.statusCode==200){
@@ -75,19 +74,19 @@ class Board{
 }
 
 class BoardInfo{
-    final String protocol;
+    final String scheme;
     final String server;
     final String path;
     final String name;
 
-    BoardInfo(this.protocol,this.server,this.path,this.name);
+    BoardInfo(this.scheme,this.server,this.path,this.name);
 
     bool equals(BoardInfo other){
         return
-            protocol == other.protocol &&
-            server   == other.server   &&
-            path     == other.path     &&
-            name     == other.name;
+            scheme  == other.scheme &&
+            server  == other.server &&
+            path    == other.path   &&
+            name    == other.name;
     }
 }
 

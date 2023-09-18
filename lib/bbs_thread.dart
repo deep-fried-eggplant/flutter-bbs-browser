@@ -1,3 +1,5 @@
+import 'dart:html';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -22,7 +24,7 @@ class Thread{
 
     Future<bool> update() async{
         final String uri=
-            "${threadInfo.boardInfo.protocol}://${threadInfo.boardInfo.server}"
+            "${threadInfo.boardInfo.scheme}//${threadInfo.boardInfo.server}"
             "/${threadInfo.boardInfo.path}"
             "/dat"
             "/${threadInfo.key}.dat";
@@ -424,3 +426,11 @@ Widget _messageLineView(String line,List<String> imageList){
     );
 }
 
+List<int> _findAnchors(String message){
+    final result = <int>[];
+    final matches = RegExp(r">>\d+").allMatches(message);
+    for(final match in matches){
+        
+    }
+    return result;
+}
