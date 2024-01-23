@@ -199,17 +199,17 @@ Future<Widget> _build()async{
     final List<BBS> list = [];
 
     final bbs5ch = await BBS.load("5ch", bbsmenuUrl: "https://menu.5ch.net/bbsmenu.json");
-    final bbssannan = await BBS.load("sannan",bbsmenuUrl: "https://sannan.nl/bbsmenu2.html");
+    // final bbssannan = await BBS.load("sannan",bbsmenuUrl: "https://sannan.nl/bbsmenu2.html");
     final other = await BBS.load("other");
 
     if(bbs5ch != null){
         list.add(bbs5ch);
         debugPrint("BBS load 5ch ok");
     }
-    if(bbssannan != null){
-        list.add(bbssannan);
-        debugPrint("BBS load sannan ok");
-    }
+    // if(bbssannan != null){
+    //     list.add(bbssannan);
+    //     debugPrint("BBS load sannan ok");
+    // }
     if(other != null){
         list.add(other);
         debugPrint("BBS load other ok");
